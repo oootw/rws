@@ -1,0 +1,43 @@
+# Reverse-proxy на api.telegram.org с TLS от Let's Encrypt.
+# Принимает только запросы с правильным X-Proxy-Secret.
+
+{
+	email {$ACME_EMAIL}
+}
+
+{$PROXY_DOMAIN} {
+	# 1. Отбрасываем всё, что без правильного секрета.
+	@unauthorized not header X-Proxy-Secret {$TG_PROXY_SHARED_SECRET}
+	handle @unauthorized {
+		respond "forbidden" 403
+	}
+
+	# 2. /file/* → file.telegram.org (скачивание прикреплённых файлов)
+	handle /file/* {
+		reverse_proxy https://api.telegram.org {
+			header_up Host api.telegram.org
+			header_up -X-Proxy-Secret
+			transport http {
+				tls
+				tls_server_name api.telegram.org
+			}
+		}
+	}
+
+	# 3. Всё остальное (/bot<token>/<method>) → api.telegram.org
+	handle {
+		reverse_proxy https://api.telegram.org {
+			header_up Host api.telegram.org
+			header_up -X-Proxy-Secret
+			transport http {
+				tls
+				tls_server_name api.telegram.org
+			}
+		}
+	}
+
+	# Загрузка файлов (sendPhoto, sendDocument) может занимать время.
+	request_body {
+		max_size 50MB
+	}
+}

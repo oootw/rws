@@ -1,0 +1,14 @@
+{
+  "name": "guard-reviews-frontend",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "npm run dev --workspace scan",
+    "build": "npm run build --workspace scan",
+    "typecheck": "npm run typecheck --workspace scan"
+  },
+  "workspaces": [
+    "scan",
+    "shared"
+  ]
+}

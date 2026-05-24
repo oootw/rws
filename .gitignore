@@ -1,0 +1,96 @@
+# ── Secrets / environment ────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+
+backend/.env
+backend/.env.*
+!backend/.env.example
+backend/.env.backup
+backend/.env.production
+
+deploy/proxy/.env
+deploy/telegram-proxy/.env
+
+deploy/env/*.env
+!deploy/env/*.env.example
+!deploy/env/*.compose.env.example
+
+# Composer private repos
+backend/auth.json
+auth.json
+
+# ── PHP / Laravel (backend) ──────────────────────────────────────────────
+backend/vendor/
+backend/node_modules/
+
+backend/bootstrap/cache/*
+!backend/bootstrap/cache/.gitignore
+
+backend/storage/*.key
+backend/storage/pail/
+
+backend/storage/logs/*
+!backend/storage/logs/.gitignore
+
+backend/storage/framework/cache/data/*
+!backend/storage/framework/cache/data/.gitignore
+
+backend/storage/framework/sessions/*
+!backend/storage/framework/sessions/.gitignore
+
+backend/storage/framework/views/*
+!backend/storage/framework/views/.gitignore
+
+backend/storage/framework/testing/*
+!backend/storage/framework/testing/.gitignore
+
+backend/storage/app/public/*
+!backend/storage/app/public/.gitignore
+
+backend/storage/app/private/*
+!backend/storage/app/private/.gitignore
+
+backend/database/*.sqlite*
+
+backend/public/build/
+backend/public/hot
+backend/public/storage
+backend/public/fonts-manifest.dev.json
+
+backend/.phpunit.result.cache
+backend/.phpunit.cache
+backend/coverage/
+backend/coverage.xml
+backend/_ide_helper.php
+backend/Homestead.json
+backend/Homestead.yaml
+
+# ── Frontend ─────────────────────────────────────────────────────────────
+dist/
+frontend/node_modules/
+frontend/*/node_modules/
+frontend/**/dist/
+
+# ── Build / runtime artefacts ────────────────────────────────────────────
+*.log
+
+# ── AI / editor local config ─────────────────────────────────────────────
+**/.agents/
+.claude/
+.cursor/
+.codex/
+.zed/
+.nova/
+.phpactor.json
+
+# ── Editor / OS ──────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# ── Docker runtime data ──────────────────────────────────────────────────
+deploy/proxy/data/
+deploy/proxy/config/

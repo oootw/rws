@@ -1,0 +1,56 @@
+# Production на VDS.
+# Запуск:
+#   bash scripts/init-env.sh production     # создаёт .env (compose) и backend/.env
+#   nano backend/.env                       # заполните секреты
+#   make prod-up
+#
+# nginx наружу не публикуется — трафик принимает reverse-proxy (deploy/proxy).
+# Стек целиком изолирован по COMPOSE_PROJECT_NAME=guard-prod.
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+      target: production
+    image: guard-reviews-app:production
+    environment:
+      RUN_MIGRATIONS: "true"
+      RUN_SEED: "false"
+
+  worker:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+      target: production
+    image: guard-reviews-app:production
+    environment:
+      RUN_MIGRATIONS: "false"
+
+  scheduler:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+      target: production
+    image: guard-reviews-app:production
+    environment:
+      RUN_MIGRATIONS: "false"
+
+  nginx:
+    build:
+      context: .
+      dockerfile: docker/nginx/Dockerfile
+      args:
+        VITE_ALLOW_TENANT_QUERY: "0"
+    image: guard-reviews-nginx:production
+    container_name: ${COMPOSE_PROJECT_NAME:-guard-prod}-nginx
+    networks:
+      app: {}
+      edge:
+        aliases:
+          - prod-nginx
+
+networks:
+  edge:
+    external: true
+    name: guard-edge

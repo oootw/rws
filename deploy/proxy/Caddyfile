@@ -1,0 +1,92 @@
+# Caddy маршрутизирует трафик на два стека.
+#
+#   {DOMAIN}              prod_nginx (apex)
+#   *.{DOMAIN}            prod_nginx (tenant поддомены, on-demand TLS)
+#
+#   {STAGING_DOMAIN}      staging_nginx (apex)
+#   *.{STAGING_DOMAIN}    staging_nginx (tenant поддомены, on-demand TLS)
+#
+# Сертификаты выпускаются Let's Encrypt автоматически:
+#   • apex и {STAGING_DOMAIN} — HTTP-01 challenge при первом запросе
+#   • tenant-поддомены — on-demand TLS (выпуск на первое подключение)
+#
+# Tenant-поддомены обслуживаются on-demand, чтобы не привязываться к
+# конкретному DNS-провайдеру (как делает wildcard через DNS-01). Минусы:
+#   • Let's Encrypt rate-limit: 50 уникальных доменов на регистрабельный
+#     домен в неделю — для MVP более чем достаточно.
+#   • Первый запрос на новый поддомен идёт ~1 сек медленнее (выпуск).
+#
+# Если тенантов будет много или нужна моментальная выдача — переключитесь
+# на wildcard через DNS-01 (см. README в этой папке).
+{
+	email {$ACME_EMAIL}
+
+	# Разрешаем on-demand TLS только для известных доменов, чтобы случайный
+	# Host-header не выпустил кучу левых сертификатов и не выбил rate-limit.
+	# Endpoint /api/internal/tls-allow — лёгкая проверка по форме поддомена.
+	on_demand_tls {
+		ask http://prod-nginx/api/internal/tls-allow
+	}
+}
+
+# --- healthcheck для docker healthcheck Caddy ---
+:80 {
+	respond /healthz "ok" 200
+}
+
+# ====================================================================
+# PRODUCTION
+# ====================================================================
+
+{$DOMAIN} {
+	encode zstd gzip
+	reverse_proxy prod-nginx:80 {
+		header_up X-Real-IP {remote_host}
+		header_up X-Forwarded-Proto https
+	}
+}
+
+*.{$DOMAIN} {
+	# Не дублируем staging-ветку
+	@staging host {$STAGING_DOMAIN} *.{$STAGING_DOMAIN}
+
+	handle @staging {
+		# попадание сюда невозможно (отдельный server-block ниже перехватит),
+		# но keep-defensive: явно ничего не отвечаем
+		abort
+	}
+
+	tls {
+		on_demand
+	}
+
+	encode zstd gzip
+	reverse_proxy prod-nginx:80 {
+		header_up X-Real-IP {remote_host}
+		header_up X-Forwarded-Proto https
+	}
+}
+
+# ====================================================================
+# STAGING
+# ====================================================================
+
+{$STAGING_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy staging-nginx:80 {
+		header_up X-Real-IP {remote_host}
+		header_up X-Forwarded-Proto https
+	}
+}
+
+*.{$STAGING_DOMAIN} {
+	tls {
+		on_demand
+	}
+
+	encode zstd gzip
+	reverse_proxy staging-nginx:80 {
+		header_up X-Real-IP {remote_host}
+		header_up X-Forwarded-Proto https
+	}
+}

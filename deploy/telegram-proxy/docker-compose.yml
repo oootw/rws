@@ -1,0 +1,34 @@
+# HTTPS-reverse-proxy к api.telegram.org.
+#
+# Ставится на VPS ВНЕ РФ (KZ/EU/US — любой провайдер от $1/мес).
+# Прозрачно проксирует:
+#   /bot<token>/<method>           — все методы Bot API (sendMessage, и т.д.)
+#   /file/bot<token>/<file_path>   — скачивание файлов от Telegram
+#
+# Запуск:
+#   cp .env.example .env
+#   nano .env                       # PROXY_DOMAIN, ACME_EMAIL, TG_PROXY_SHARED_SECRET
+#   docker compose up -d
+#
+# Потом на основном сервере в backend/.env:
+#   TELEGRAM_API_URL=https://${PROXY_DOMAIN}
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    container_name: tg-proxy-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    env_file:
+      - ./.env
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:

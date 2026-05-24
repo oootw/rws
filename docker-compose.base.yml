@@ -1,0 +1,105 @@
+# Базовый стек: PostgreSQL + Redis + PHP-FPM (app/worker/scheduler) + nginx.
+# Никаких портов на хост — это делают local/staging/prod оверлеи.
+
+x-app-depends: &app-depends
+  postgres:
+    condition: service_healthy
+  redis:
+    condition: service_healthy
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USERNAME:-guard}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-change-me}
+      POSTGRES_DB: ${DB_DATABASE:-guard_reviews}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-guard} -d ${DB_DATABASE:-guard_reviews}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - app
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - app
+
+  app:
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    depends_on:
+      <<: *app-depends
+    volumes:
+      - app_storage:/var/www/html/storage/app
+    healthcheck:
+      test: ["CMD", "php", "-r", "exit(@fsockopen('127.0.0.1', 9000) ? 0 : 1);"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+      start_period: 30s
+    networks:
+      - app
+
+  worker:
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    command: php artisan queue:work redis --sleep=3 --tries=3 --max-time=3600
+    depends_on:
+      <<: *app-depends
+    volumes:
+      - app_storage:/var/www/html/storage/app
+    networks:
+      - app
+
+  scheduler:
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    command: php artisan schedule:work
+    depends_on:
+      <<: *app-depends
+    volumes:
+      - app_storage:/var/www/html/storage/app
+    networks:
+      - app
+
+  nginx:
+    restart: unless-stopped
+    depends_on:
+      app:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/up"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+      start_period: 15s
+    networks:
+      - app
+
+networks:
+  app:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+  app_storage:
+  app_vendor:

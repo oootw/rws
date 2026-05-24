@@ -1,0 +1,36 @@
+# Edge reverse-proxy: Caddy + автоматические TLS-сертификаты Let's Encrypt.
+#
+# Поднимается ОДИН раз на VDS и обслуживает оба стека (prod + staging).
+# Подключается к внешней сети `guard-edge`, в неё же входят оба nginx'а.
+#
+# Запуск:
+#   make proxy-net        # создать сеть, если ещё нет
+#   make proxy-up
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    container_name: guard-edge-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"   # HTTP/3
+    env_file:
+      - ./.env
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./data:/data
+      - ./config:/config
+    networks:
+      - edge
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:80/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+networks:
+  edge:
+    external: true
+    name: guard-edge
