@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Queue;
 
 uses(RefreshDatabase::class);
 
-it('returns public place data for active tenant subscription', function (): void {
+it('возвращает публичные данные точки при активной подписке', function (): void {
     $user = User::factory()->create(['subdomain_slug' => 'cafe']);
     $place = Place::factory()->for($user)->create(['title' => 'Cafe Uyut']);
 
@@ -28,7 +28,7 @@ it('returns public place data for active tenant subscription', function (): void
         ]);
 });
 
-it('blocks public endpoints when subscription expired', function (): void {
+it('блокирует публичные маршруты при истёкшей подписке', function (): void {
     $user = User::factory()->withoutSubscription()->create(['subdomain_slug' => 'expired']);
     $place = Place::factory()->for($user)->create();
 
@@ -38,7 +38,7 @@ it('blocks public endpoints when subscription expired', function (): void {
         ->assertJsonPath('message', 'Сервис временно недоступен. Подписка не активна.');
 });
 
-it('logs scan action', function (): void {
+it('записывает действие сканирования', function (): void {
     $user = User::factory()->create(['subdomain_slug' => 'scan']);
     $place = Place::factory()->for($user)->create();
 
@@ -50,7 +50,7 @@ it('logs scan action', function (): void {
         ->and(ActionLog::query()->first()->action_type)->toBe(ActionType::Scanned);
 });
 
-it('redirects to configured platform and logs metadata', function (): void {
+it('перенаправляет на площадку и пишет метаданные', function (): void {
     $user = User::factory()->create(['subdomain_slug' => 'redirect']);
     $place = Place::factory()->for($user)->create();
 
@@ -66,7 +66,7 @@ it('redirects to configured platform and logs metadata', function (): void {
         ->and($log?->metadata)->toBe(['platform' => '2gis']);
 });
 
-it('creates negative review and dispatches alert job', function (): void {
+it('создаёт негативный отзыв и ставит задачу алерта в очередь', function (): void {
     Queue::fake();
     $user = User::factory()->create(['subdomain_slug' => 'review']);
     $place = Place::factory()->for($user)->create();
@@ -90,7 +90,7 @@ it('creates negative review and dispatches alert job', function (): void {
     Queue::assertPushed(SendNegativeReviewAlert::class);
 });
 
-it('rejects review when captcha token is empty', function (): void {
+it('отклоняет отзыв с пустым токеном captcha', function (): void {
     $user = User::factory()->create(['subdomain_slug' => 'captcha']);
     $place = Place::factory()->for($user)->create();
 
@@ -106,7 +106,7 @@ it('rejects review when captcha token is empty', function (): void {
         ->assertJsonPath('errors.captcha_token.0', 'Подтвердите, что вы не робот.');
 });
 
-it('notifies owner and founder on critical error', function (): void {
+it('уведомляет владельца и основателя о критической ошибке', function (): void {
     Mail::fake();
     config(['guardreviews.admin_alert_email' => 'founder@example.com']);
 
@@ -125,7 +125,7 @@ it('notifies owner and founder on critical error', function (): void {
     Mail::assertSent(PlainTextMail::class, 2);
 });
 
-it('returns not found when place belongs to another tenant', function (): void {
+it('возвращает «не найдено» для чужого арендатора', function (): void {
     $owner = User::factory()->create(['subdomain_slug' => 'owner']);
     $intruder = User::factory()->create(['subdomain_slug' => 'intruder']);
     $place = Place::factory()->for($owner)->create();

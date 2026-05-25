@@ -20,7 +20,7 @@ function newPaymentTransaction(int $amount = 99000): PaymentTransaction
     );
 }
 
-it('создаётся в Pending', function (): void {
+it('создаётся в статусе «ожидание»', function (): void {
     expect(newPaymentTransaction()->status())->toBe(PaymentStatus::Pending);
 });
 
@@ -34,11 +34,11 @@ it('подтверждается при совпадающей сумме', func
         ->and($tx->isFinalized())->toBeTrue();
 });
 
-it('бросает PaymentAmountMismatch при расхождении суммы', function (): void {
+it('бросает «несовпадение суммы» при расхождении суммы', function (): void {
     newPaymentTransaction(99000)->confirm(new Money(50000));
 })->throws(PaymentAmountMismatch::class);
 
-it('помечается как Failed', function (): void {
+it('помечается как неуспешная', function (): void {
     $tx = newPaymentTransaction();
 
     $tx->fail();
@@ -47,13 +47,13 @@ it('помечается как Failed', function (): void {
         ->and($tx->isFinalized())->toBeFalse();
 });
 
-it('не даёт перевести успешную транзакцию в Failed', function (): void {
+it('не даёт перевести успешную транзакцию в неуспешную', function (): void {
     $tx = newPaymentTransaction();
     $tx->confirm(new Money(99000));
 
     $tx->fail();
 })->throws(LogicException::class);
 
-it('Money не допускает неположительную сумму', function (): void {
+it('сумма не допускает неположительное значение', function (): void {
     new Money(0);
 })->throws(InvalidArgumentException::class);

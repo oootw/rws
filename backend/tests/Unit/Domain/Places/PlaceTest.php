@@ -27,7 +27,7 @@ it('по умолчанию активна и без площадок', function
         ->and($place->hasConfiguredPlatforms())->toBeFalse();
 });
 
-it('находит площадку по типу и говорит null, если её нет', function (): void {
+it('находит площадку по типу и возвращает null, если её нет', function (): void {
     $place = freshPlace([
         new PlatformLink(PlatformType::TwoGis, 'https://2gis.ru/x', '2GIS'),
     ]);
@@ -36,7 +36,7 @@ it('находит площадку по типу и говорит null, есл
         ->and($place->platform(PlatformType::Yandex))->toBeNull();
 });
 
-it('сравнивает владельца по id', function (): void {
+it('сравнивает владельца по идентификатору', function (): void {
     $place = freshPlace();
 
     expect($place->isOwnedBy(new OwnerId('22222222-2222-2222-2222-222222222222')))->toBeTrue()

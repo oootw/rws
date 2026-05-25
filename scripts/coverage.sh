@@ -5,6 +5,9 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BACKEND="$ROOT/backend"
 COMPOSE=(docker compose -f "$ROOT/docker-compose.base.yml" -f "$ROOT/docker-compose.local.yml")
 
+# phpunit.xml env — в Docker .env перебивает их без явной передачи
+DOCKER_TEST_ENV='APP_ENV=testing DB_CONNECTION=sqlite DB_DATABASE=:memory: DB_URL= CACHE_STORE=array SESSION_DRIVER=array QUEUE_CONNECTION=sync'
+
 MIN=""
 HTML_DIR=""
 USE_DOCKER=""
@@ -105,6 +108,11 @@ run_local() {
     run_pest php "${php_opts[@]}"
 }
 
+ensure_docker_vendor() {
+    "${COMPOSE[@]}" exec -T -w /var/www/html app sh -c \
+        '[ -f vendor/autoload.php ] || composer install --no-interaction --prefer-dist'
+}
+
 run_docker() {
     if ! docker_app_running; then
         echo "Контейнер app не запущен. Поднимите: make local-up" >&2
@@ -114,8 +122,17 @@ run_docker() {
     local -a pest_args
     read -r -a pest_args <<<"$(build_pest_args)"
 
-    "${COMPOSE[@]}" exec -T -w /var/www/html app php -d pcov.enabled=1 artisan config:clear --ansi --no-interaction
-    "${COMPOSE[@]}" exec -T -w /var/www/html app php -d pcov.enabled=1 ./vendor/bin/pest "${pest_args[@]}"
+    ensure_docker_vendor
+
+    local pest_quoted=""
+    local arg
+    for arg in "${pest_args[@]}"; do
+        pest_quoted+=" $(printf '%q' "$arg")"
+    done
+
+    "${COMPOSE[@]}" exec -T -w /var/www/html app sh -c \
+        "${DOCKER_TEST_ENV} php -d pcov.enabled=1 artisan config:clear --ansi --no-interaction \
+        && ${DOCKER_TEST_ENV} php -d pcov.enabled=1 ./vendor/bin/pest${pest_quoted}"
 }
 
 if [[ -n "$USE_DOCKER" ]]; then
@@ -131,7 +148,7 @@ else
 
 Локально:
   pecl install pcov
-  # или пакет ОС, например: apk add php83-pecl-pcov
+  # или пакет ОС, например: apk add php84-pecl-pcov
 
 Docker (рекомендуется):
   make local-up

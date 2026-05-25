@@ -45,7 +45,7 @@ it('доставляет уведомление о негативе через T
     $bot->assertCalled('sendMessage');
 });
 
-it('падает в e-mail, когда мессенджеры недоступны', function (): void {
+it('переключается на email, когда мессенджеры недоступны', function (): void {
     Mail::fake();
     config(['nutgram.token' => null]);
 
@@ -64,7 +64,7 @@ it('падает в e-mail, когда мессенджеры недоступн
     });
 });
 
-it('weekly digest job отправляет дайджест по каждой точке владельца', function (): void {
+it('задача недельного дайджеста отправляет дайджест по каждой точке владельца', function (): void {
     config(['nutgram.token' => '123456:TEST']);
 
     $owner = User::factory()->create(['telegram_id' => '4004']);

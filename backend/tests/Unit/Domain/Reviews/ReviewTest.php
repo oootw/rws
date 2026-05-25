@@ -24,7 +24,7 @@ function submitReview(int $stars = 2): Review
     );
 }
 
-it('создаёт отзыв со статусом New и записывает доменное событие', function (): void {
+it('создаёт отзыв со статусом «новый» и записывает доменное событие', function (): void {
     $review = submitReview(stars: 1);
 
     expect($review->status())->toBe(ReviewStatus::New);
@@ -35,7 +35,7 @@ it('создаёт отзыв со статусом New и записывает 
         ->and($events[0])->toBeInstanceOf(NegativeReviewSubmitted::class);
 });
 
-it('после pull очищает накопленные события', function (): void {
+it('после извлечения очищает накопленные события', function (): void {
     $review = submitReview();
     $review->pullRecordedEvents();
 

@@ -4,19 +4,19 @@ declare(strict_types=1);
 
 use App\Domain\Iam\Subscription;
 
-it('считает себя активной, если endsAt в будущем', function (): void {
+it('считает себя активной, если дата окончания в будущем', function (): void {
     $sub = new Subscription(new DateTimeImmutable('2026-12-31T00:00:00Z'));
 
     expect($sub->isActiveAt(new DateTimeImmutable('2026-06-01T00:00:00Z')))->toBeTrue();
 });
 
-it('считает себя истёкшей, если endsAt в прошлом', function (): void {
+it('считает себя истёкшей, если дата окончания в прошлом', function (): void {
     $sub = new Subscription(new DateTimeImmutable('2026-01-01T00:00:00Z'));
 
     expect($sub->isActiveAt(new DateTimeImmutable('2026-06-01T00:00:00Z')))->toBeFalse();
 });
 
-it('без endsAt всегда неактивна', function (): void {
+it('без даты окончания всегда неактивна', function (): void {
     expect(Subscription::none()->isActiveAt(new DateTimeImmutable))->toBeFalse();
 });
 

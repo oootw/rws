@@ -42,7 +42,7 @@ function signedTinkoffNotification(array $overrides = []): array
     return $payload;
 }
 
-it('generates tinkoff token using official example', function (): void {
+it('генерирует токен Tinkoff по официальному примеру', function (): void {
     $token = (new TinkoffTokenSigner)->sign([
         'TerminalKey' => 'MerchantTerminalKey',
         'Amount' => 19200,
@@ -53,7 +53,7 @@ it('generates tinkoff token using official example', function (): void {
     expect($token)->toBe('72dd466f8ace0a37a1f740ce5fb78101712bc0665d91a8108c7c8a0ccd426db2');
 });
 
-it('initializes subscription payment and returns payment url', function (): void {
+it('инициализирует оплату подписки и возвращает URL платежа', function (): void {
     Http::fake([
         'https://securepay.tinkoff.ru/v2/Init' => Http::response([
             'Success' => true,
@@ -80,7 +80,7 @@ it('initializes subscription payment and returns payment url', function (): void
         ->and($transaction->external_id)->toBe('999');
 });
 
-it('extends subscription from webhook confirmation', function (): void {
+it('продлевает подписку из webhook-подтверждения', function (): void {
     $user = User::factory()->withoutSubscription()->create();
     $tariff = Tariff::query()->where('title', 'MVP')->firstOrFail();
 
@@ -103,7 +103,7 @@ it('extends subscription from webhook confirmation', function (): void {
         ->and($user->subscription_ends_at->isFuture())->toBeTrue();
 });
 
-it('rejects webhook with invalid signature', function (): void {
+it('отклоняет webhook с неверной подписью', function (): void {
     $transaction = PaymentTransaction::factory()->create();
 
     $payload = signedTinkoffNotification(['OrderId' => $transaction->id]);
@@ -114,7 +114,7 @@ it('rejects webhook with invalid signature', function (): void {
         ->assertSee('INVALID');
 });
 
-it('extends active subscription from current end date', function (): void {
+it('продлевает активную подписку от текущей даты окончания', function (): void {
     $endsAt = now()->addDays(10);
     $user = User::factory()->create(['subscription_ends_at' => $endsAt]);
 
@@ -126,7 +126,7 @@ it('extends active subscription from current end date', function (): void {
         ->toBe($endsAt->copy()->addDays(30)->toDateString());
 });
 
-it('returns failure when tinkoff is not configured', function (): void {
+it('возвращает ошибку когда Tinkoff не настроен', function (): void {
     config([
         'guardreviews.tinkoff.terminal_key' => null,
         'guardreviews.tinkoff.secret_key' => null,
@@ -139,4 +139,70 @@ it('returns failure when tinkoff is not configured', function (): void {
 
     expect($result->paymentUrl)->toBeNull()
         ->and($result->errorMessage)->toContain('недоступна');
+});
+
+it('помечает транзакцию неуспешной при отклонённом webhook', function (): void {
+    $transaction = PaymentTransaction::factory()->create([
+        'status' => PaymentStatus::Pending,
+    ]);
+
+    $this->postJson('/api/webhooks/tinkoff', signedTinkoffNotification([
+        'OrderId' => $transaction->id,
+        'Success' => false,
+        'Status' => 'REJECTED',
+    ]))->assertOk()->assertSee('OK');
+
+    expect($transaction->fresh()->status)->toBe(PaymentStatus::Failed);
+});
+
+it('игнорирует промежуточный статус webhook', function (): void {
+    $transaction = PaymentTransaction::factory()->create([
+        'status' => PaymentStatus::Pending,
+    ]);
+
+    $this->postJson('/api/webhooks/tinkoff', signedTinkoffNotification([
+        'OrderId' => $transaction->id,
+        'Success' => false,
+        'Status' => 'AUTHORIZED',
+    ]))->assertOk()->assertSee('OK');
+
+    expect($transaction->fresh()->status)->toBe(PaymentStatus::Pending);
+});
+
+it('возвращает «некорректно» для неизвестной транзакции в webhook', function (): void {
+    $this->postJson('/api/webhooks/tinkoff', signedTinkoffNotification([
+        'OrderId' => '00000000-0000-0000-0000-000000000000',
+    ]))->assertBadRequest()->assertSee('INVALID');
+});
+
+it('возвращает ошибку когда профиль владельца не найден', function (): void {
+    Http::fake([
+        'https://securepay.tinkoff.ru/v2/Init' => Http::response([
+            'Success' => true,
+            'PaymentId' => 999,
+            'PaymentURL' => 'https://pay.tinkoff.test/session',
+        ]),
+    ]);
+
+    $result = app(InitSubscriptionPaymentHandler::class)->handle(
+        new InitSubscriptionPaymentCommand(ownerId: '00000000-0000-0000-0000-000000000000'),
+    );
+
+    expect($result->paymentUrl)->toBeNull()
+        ->and($result->errorMessage)->toContain('Профиль не найден');
+});
+
+it('игнорирует повторное подтверждение финализированной транзакции', function (): void {
+    $user = User::factory()->create(['subscription_ends_at' => now()->addDays(5)]);
+    $transaction = PaymentTransaction::factory()->create([
+        'user_id' => $user->id,
+        'status' => PaymentStatus::Success,
+    ]);
+
+    $this->postJson('/api/webhooks/tinkoff', signedTinkoffNotification([
+        'OrderId' => $transaction->id,
+    ]))->assertOk();
+
+    expect($user->fresh()->subscription_ends_at->toDateString())
+        ->toBe($user->subscription_ends_at->toDateString());
 });

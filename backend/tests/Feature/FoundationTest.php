@@ -19,7 +19,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
-it('logs scan actions with metadata', function (): void {
+it('записывает действия сканирования с метаданными', function (): void {
     $place = Place::factory()->create();
 
     app(RecordActionHandler::class)->handle(new RecordActionCommand(
@@ -35,7 +35,7 @@ it('logs scan actions with metadata', function (): void {
         ->and($log->created_at)->not->toBeNull();
 });
 
-it('summarizes weekly action log counts per place', function (): void {
+it('суммирует недельную статистику действий по точке', function (): void {
     $place = Place::factory()->create();
     $record = app(RecordActionHandler::class);
 
@@ -52,7 +52,7 @@ it('summarizes weekly action log counts per place', function (): void {
         ->and($summary->leftNegative)->toBe(1);
 });
 
-it('filters empty platform urls in domain aggregate', function (): void {
+it('отфильтровывает пустые URL площадок в агрегате', function (): void {
     $model = Place::factory()->create([
         'platforms' => [
             ['type' => '2gis', 'url' => 'https://2gis.ru/example', 'label' => '2GIS'],
@@ -68,7 +68,7 @@ it('filters empty platform urls in domain aggregate', function (): void {
         ->and($place->hasConfiguredPlatforms())->toBeTrue();
 });
 
-it('calculates subscription amount based on place count', function (): void {
+it('рассчитывает сумму подписки по числу точек', function (): void {
     $user = User::factory()->create();
     Place::factory()->count(3)->for($user)->create();
 
@@ -78,7 +78,7 @@ it('calculates subscription amount based on place count', function (): void {
     expect($amount)->toBe(99000 + (2 * 29000));
 });
 
-it('falls back to e-mail when no instant channel is configured', function (): void {
+it('переключается на email без мгновенного канала', function (): void {
     config(['nutgram.token' => null]);
 
     $sent = [];

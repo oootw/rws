@@ -44,7 +44,7 @@ it('идёт по первому URL, если он отвечает 200', funct
     expect($hosts)->toBe(['primary.example.com']);
 });
 
-it('переключается на следующий URL при ConnectException', function (): void {
+it('переключается на следующий URL при ошибке соединения', function (): void {
     $hosts = [];
     $calls = 0;
 

@@ -67,19 +67,19 @@ it('возвращает владельца по поддомену', function (
     expect($owner->subdomain()->value)->toBe('cafe');
 });
 
-it('бросает TenantNotFound, если владельца нет', function (): void {
+it('бросает «арендатор не найден», если владельца нет', function (): void {
     (new ResolveTenantBySubdomainHandler(fakeOwnersRepo()))->handle(
         new ResolveTenantBySubdomainQuery(subdomain: 'missing'),
     );
 })->throws(TenantNotFound::class);
 
-it('бросает TenantNotFound на невалидном поддомене', function (): void {
+it('бросает «арендатор не найден» на невалидном поддомене', function (): void {
     (new ResolveTenantBySubdomainHandler(fakeOwnersRepo(freshOwner())))->handle(
         new ResolveTenantBySubdomainQuery(subdomain: 'a'),
     );
 })->throws(TenantNotFound::class);
 
-it('бросает TenantNotFound на зарезервированном поддомене', function (): void {
+it('бросает «арендатор не найден» на зарезервированном поддомене', function (): void {
     (new ResolveTenantBySubdomainHandler(fakeOwnersRepo()))->handle(
         new ResolveTenantBySubdomainQuery(subdomain: 'api'),
     );
