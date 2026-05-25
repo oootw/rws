@@ -7,7 +7,9 @@ use App\Infrastructure\ServiceProviders\PaymentsServiceProvider;
 use App\Infrastructure\ServiceProviders\PlacesServiceProvider;
 use App\Infrastructure\ServiceProviders\ReviewsServiceProvider;
 use App\Infrastructure\ServiceProviders\TelegramServiceProvider;
+use App\Interface\Filament\Auth\AdminAuthServiceProvider;
 use App\Providers\AppServiceProvider;
+use App\Providers\Filament\AdminPanelProvider;
 
 return [
     AppServiceProvider::class,
@@ -18,4 +20,6 @@ return [
     PlacesServiceProvider::class,
     ReviewsServiceProvider::class,
     TelegramServiceProvider::class,
+    AdminAuthServiceProvider::class,
+    AdminPanelProvider::class,
 ];

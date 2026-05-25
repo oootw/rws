@@ -112,4 +112,24 @@ return [
         'server_key' => env('YANDEX_CAPTCHA_SERVER_KEY'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Admin panel (Filament)
+    |--------------------------------------------------------------------------
+    |
+    | Один супер-админ, хранится в .env:
+    |  - ADMIN_EMAIL — логин;
+    |  - ADMIN_PASSWORD_HASH — bcrypt-хеш пароля (сгенерируйте через
+    |    `php artisan admin:password`).
+    |
+    | Пустые значения отключают вход в админку.
+    */
+
+    'admin' => [
+        'path' => env('ADMIN_PANEL_PATH', 'admin'),
+        'email' => env('ADMIN_EMAIL'),
+        'password_hash' => env('ADMIN_PASSWORD_HASH'),
+        'name' => env('ADMIN_NAME', 'Developer'),
+    ],
+
 ];

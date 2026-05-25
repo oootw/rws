@@ -44,6 +44,13 @@ function fakeOwnersRepo(?Owner $stored = null): OwnerRepository
         {
             return $this->findBySubdomain($subdomain) !== null;
         }
+
+        public function delete(OwnerId $id): void
+        {
+            if ($this->stored !== null && $this->stored->id->value === $id->value) {
+                $this->stored = null;
+            }
+        }
     };
 }
 

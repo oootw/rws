@@ -115,6 +115,14 @@ function fakeOwnerRepository(array $owners = [], array $takenSubdomains = []): O
 
             return $this->findBySubdomain($subdomain) !== null;
         }
+
+        public function delete(OwnerId $id): void
+        {
+            $this->owners = array_values(array_filter(
+                $this->owners,
+                static fn (Owner $owner) => ! $owner->id->equals($id),
+            ));
+        }
     };
 }
 

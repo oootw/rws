@@ -26,14 +26,14 @@ it('сообщает что подписка не активна без даты
 });
 
 it('сообщает что подписка не активна после истечения', function (): void {
-    $expired = new \DateTimeImmutable('-1 day');
+    $expired = new DateTimeImmutable('-1 day');
 
     expect(TelegramMessages::subscriptionStatus($expired))
         ->toContain('не активна');
 });
 
 it('сообщает дату активной подписки в московском времени', function (): void {
-    $endsAt = new \DateTimeImmutable('2030-06-15 12:00:00 UTC');
+    $endsAt = new DateTimeImmutable('2030-06-15 12:00:00 UTC');
 
     expect(TelegramMessages::subscriptionStatus($endsAt))
         ->toContain('активна до 15.06.2030')

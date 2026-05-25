@@ -110,6 +110,43 @@ final class Owner
         $this->subscription = $this->subscription->extend($days, $now);
     }
 
+    /**
+     * Меняет профильные поля владельца (используется админкой и будущим ЛК).
+     * Доменные инварианты проверяют VO: Email, SubdomainSlug, TelegramId.
+     */
+    public function changeProfile(
+        string $name,
+        Email $email,
+        SubdomainSlug $subdomain,
+        ?TelegramId $telegramId,
+        ?TariffId $tariffId,
+    ): void {
+        $this->name = $name;
+        $this->email = $email;
+        $this->subdomain = $subdomain;
+        $this->telegramId = $telegramId;
+        $this->tariffId = $tariffId;
+    }
+
+    /**
+     * Прямой override срока подписки админом. null = сбросить подписку.
+     * В отличие от extendSubscription() не накапливает срок: ставит точную дату.
+     */
+    public function overrideSubscription(?DateTimeImmutable $endsAt): void
+    {
+        $this->subscription = new Subscription($endsAt);
+    }
+
+    public function changeTariff(?TariffId $tariffId): void
+    {
+        $this->tariffId = $tariffId;
+    }
+
+    public function subdomainEquals(SubdomainSlug $candidate): bool
+    {
+        return $this->subdomain->value === $candidate->value;
+    }
+
     public function asNotificationContact(): OwnerContact
     {
         return new OwnerContact(

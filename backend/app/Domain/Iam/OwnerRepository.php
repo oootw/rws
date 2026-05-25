@@ -15,4 +15,11 @@ interface OwnerRepository
     public function findByTelegramId(TelegramId $telegramId): ?Owner;
 
     public function subdomainExists(SubdomainSlug $subdomain): bool;
+
+    /**
+     * Удаление владельца. Каскад на places/reviews/payments/action_logs
+     * обеспечен внешними ключами в миграциях; репозиторий лишь сносит
+     * корневую запись и полагается на FK в БД.
+     */
+    public function delete(OwnerId $id): void;
 }

@@ -42,6 +42,14 @@ return [
             'driver' => 'session',
             'provider' => 'users',
         ],
+
+        // Изолированный гард для Filament-админки. Provider env-admin —
+        // кастомный, читает учётку из config/guardreviews.php (.env).
+        // Никаких записей в БД, никакой таблицы users.
+        'admin' => [
+            'driver' => 'session',
+            'provider' => 'env-admin',
+        ],
     ],
 
     /*
@@ -67,10 +75,11 @@ return [
             'model' => env('AUTH_MODEL', User::class),
         ],
 
-        // 'users' => [
-        //     'driver' => 'database',
-        //     'table' => 'users',
-        // ],
+        // Driver регистрируется в App\Interface\Filament\Auth\AdminAuthServiceProvider.
+        // Использует config('guardreviews.admin') как источник «единственного супер-админа».
+        'env-admin' => [
+            'driver' => 'env-admin',
+        ],
     ],
 
     /*

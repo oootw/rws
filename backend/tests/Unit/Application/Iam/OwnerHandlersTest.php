@@ -66,6 +66,6 @@ it('бросает исключение «арендатор не найден»
     (new ExtendSubscriptionHandler(
         owners: fakeOwnerRepository(),
         clock: frozenClockAt('2026-06-01T00:00:00Z'),
-        config: new ConfigRepository(),
+        config: new ConfigRepository,
     ))->handle(new ExtendSubscriptionCommand(ownerId: '00000000-0000-0000-0000-000000000000'));
 })->throws(TenantNotFound::class);

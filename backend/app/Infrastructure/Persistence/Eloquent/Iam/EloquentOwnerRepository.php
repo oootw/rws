@@ -48,6 +48,11 @@ final readonly class EloquentOwnerRepository implements OwnerRepository
         return UserModel::query()->where('subdomain_slug', $subdomain->value)->exists();
     }
 
+    public function delete(OwnerId $id): void
+    {
+        UserModel::query()->whereKey($id->value)->delete();
+    }
+
     private function loadOne(callable $fetch): ?Owner
     {
         $model = $fetch();
