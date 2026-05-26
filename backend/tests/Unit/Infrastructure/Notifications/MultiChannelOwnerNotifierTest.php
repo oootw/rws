@@ -5,6 +5,8 @@ declare(strict_types=1);
 use App\Application\Notifications\Channels\NotificationChannel;
 use App\Application\Notifications\OwnerNotification;
 use App\Domain\Notifications\OwnerContact;
+use App\Application\Notifications\Logging\NotificationDeliveryLogger;
+use App\Application\Notifications\Logging\NotificationDeliveryStatus;
 use App\Infrastructure\Notifications\MultiChannelOwnerNotifier;
 use App\Infrastructure\Notifications\NotificationDeliveryFailed;
 use Psr\Log\NullLogger;
@@ -42,12 +44,21 @@ function notificationToOwner(): OwnerNotification
     );
 }
 
+function nullDeliveryLogger(): NotificationDeliveryLogger
+{
+    return new class implements NotificationDeliveryLogger
+    {
+        public function log(?string $ownerId, string $channel, string $kind, NotificationDeliveryStatus $status, ?string $error = null): void {}
+    };
+}
+
 function makeNotifier(array $instant, array $fallback): MultiChannelOwnerNotifier
 {
     return new MultiChannelOwnerNotifier(
         instantChannels: $instant,
         fallbackChannels: $fallback,
         logger: new NullLogger,
+        deliveryLogger: nullDeliveryLogger(),
     );
 }
 

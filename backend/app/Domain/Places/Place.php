@@ -100,4 +100,27 @@ final class Place
     {
         return $this->platforms !== [];
     }
+
+    /**
+     * @param  list<PlatformLink>  $platforms
+     */
+    public function updateProfile(
+        Title $title,
+        array $platforms,
+        ?string $backgroundImageUrl,
+    ): void {
+        $this->title = $title;
+        $this->platforms = $platforms;
+        $this->backgroundImageUrl = $backgroundImageUrl;
+    }
+
+    public function activate(): void
+    {
+        $this->isActive = true;
+    }
+
+    public function deactivate(): void
+    {
+        $this->isActive = false;
+    }
 }

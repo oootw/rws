@@ -147,7 +147,7 @@ function fakeTariffRepository(?Tariff $default = null, array $tariffs = []): Tar
     return new class($default, $tariffs) implements TariffRepository
     {
         /** @param  list<Tariff>  $tariffs */
-        public function __construct(private ?Tariff $default, private array $tariffs) {}
+        public function __construct(public ?Tariff $default, public array $tariffs) {}
 
         public function findById(TariffId $id): ?Tariff
         {
@@ -163,6 +163,21 @@ function fakeTariffRepository(?Tariff $default = null, array $tariffs = []): Tar
         public function findDefault(): ?Tariff
         {
             return $this->default;
+        }
+
+        public function markAsOnlyDefault(TariffId $id): void
+        {
+            foreach ($this->tariffs as $index => $tariff) {
+                $this->tariffs[$index] = new Tariff(
+                    id: $tariff->id,
+                    title: $tariff->title,
+                    isDefault: $tariff->id->value === $id->value,
+                );
+
+                if ($tariff->id->value === $id->value) {
+                    $this->default = $this->tariffs[$index];
+                }
+            }
         }
     };
 }

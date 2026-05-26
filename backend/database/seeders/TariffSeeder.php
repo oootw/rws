@@ -19,6 +19,7 @@ class TariffSeeder extends Seeder
                     'extra_place_price' => config('guardreviews.subscription.extra_place_price'),
                 ],
                 'is_active' => true,
+                'is_default' => true,
             ],
         );
     }

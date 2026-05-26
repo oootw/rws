@@ -2,6 +2,7 @@
 
 use App\Infrastructure\ServiceProviders\AnalyticsServiceProvider;
 use App\Infrastructure\ServiceProviders\IamServiceProvider;
+use App\Infrastructure\ServiceProviders\JobsServiceProvider;
 use App\Infrastructure\ServiceProviders\NotificationsServiceProvider;
 use App\Infrastructure\ServiceProviders\PaymentsServiceProvider;
 use App\Infrastructure\ServiceProviders\PlacesServiceProvider;
@@ -20,6 +21,7 @@ return [
     PlacesServiceProvider::class,
     ReviewsServiceProvider::class,
     TelegramServiceProvider::class,
+    JobsServiceProvider::class,
     AdminAuthServiceProvider::class,
     AdminPanelProvider::class,
 ];

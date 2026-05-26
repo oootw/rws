@@ -23,6 +23,9 @@ use Illuminate\Contracts\Auth\Authenticatable;
  */
 final class AdminUser extends GenericUser implements Authenticatable, FilamentUser, HasAvatar, HasName
 {
+    /** Стабильный UUID для database sessions (колонка user_id — uuid, не string). */
+    public const ID = '00000000-0000-0000-0000-000000000001';
+
     /**
      * @param  array{id: int|string, email: string, name: string, password: string}  $attributes
      */
@@ -63,7 +66,7 @@ final class AdminUser extends GenericUser implements Authenticatable, FilamentUs
      */
     public function getKey(): string
     {
-        return (string) ($this->attributes['id'] ?? 'admin');
+        return (string) ($this->attributes['id'] ?? self::ID);
     }
 
     /**

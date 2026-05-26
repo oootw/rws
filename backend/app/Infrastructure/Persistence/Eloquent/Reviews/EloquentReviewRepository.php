@@ -28,4 +28,9 @@ final readonly class EloquentReviewRepository implements ReviewRepository
 
         return $model === null ? null : $this->mapper->toDomain($model);
     }
+
+    public function delete(ReviewId $id): void
+    {
+        ReviewModel::query()->whereKey($id->value)->delete();
+    }
 }

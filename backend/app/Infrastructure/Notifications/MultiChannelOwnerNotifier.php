@@ -5,9 +5,12 @@ declare(strict_types=1);
 namespace App\Infrastructure\Notifications;
 
 use App\Application\Notifications\Channels\NotificationChannel;
+use App\Application\Notifications\Logging\NotificationDeliveryLogger;
+use App\Application\Notifications\Logging\NotificationDeliveryStatus;
 use App\Application\Notifications\OwnerNotification;
 use App\Application\Notifications\OwnerNotifier;
 use Psr\Log\LoggerInterface;
+use ReflectionClass;
 use Throwable;
 
 /**
@@ -23,6 +26,10 @@ use Throwable;
  * Исключения отдельных каналов логируются, но не прерывают цепочку:
  * упавший Telegram не мешает попробовать MAX и затем email.
  *
+ * Каждая попытка пишется в notification_deliveries через
+ * NotificationDeliveryLogger — это «тихая» запись для админ-просмотра;
+ * её падение по контракту не должно затрагивать основной flow.
+ *
  * @phpstan-type ChannelList list<NotificationChannel>
  */
 final readonly class MultiChannelOwnerNotifier implements OwnerNotifier
@@ -35,6 +42,7 @@ final readonly class MultiChannelOwnerNotifier implements OwnerNotifier
         private array $instantChannels,
         private array $fallbackChannels,
         private LoggerInterface $logger,
+        private NotificationDeliveryLogger $deliveryLogger,
     ) {}
 
     public function notify(OwnerNotification $notification): void
@@ -64,13 +72,29 @@ final readonly class MultiChannelOwnerNotifier implements OwnerNotifier
         $delivered = false;
 
         foreach ($channels as $channel) {
+            $channelName = $this->channelName($channel);
+
             if (! $channel->supports($notification)) {
+                $this->deliveryLogger->log(
+                    ownerId: $notification->contact->ownerId,
+                    channel: $channelName,
+                    kind: $notification->kind,
+                    status: NotificationDeliveryStatus::Skipped,
+                );
+
                 continue;
             }
 
             try {
                 $channel->deliver($notification);
                 $delivered = true;
+
+                $this->deliveryLogger->log(
+                    ownerId: $notification->contact->ownerId,
+                    channel: $channelName,
+                    kind: $notification->kind,
+                    status: NotificationDeliveryStatus::Delivered,
+                );
             } catch (Throwable $e) {
                 $errors[] = [
                     'channel' => $channel::class,
@@ -82,9 +106,28 @@ final readonly class MultiChannelOwnerNotifier implements OwnerNotifier
                     'subject' => $notification->emailSubject,
                     'error' => $e->getMessage(),
                 ]);
+
+                $this->deliveryLogger->log(
+                    ownerId: $notification->contact->ownerId,
+                    channel: $channelName,
+                    kind: $notification->kind,
+                    status: NotificationDeliveryStatus::Failed,
+                    error: $e->getMessage(),
+                );
             }
         }
 
         return $delivered;
+    }
+
+    /**
+     * Короткое имя адаптера для notification_deliveries («Telegram», «Max», «Email»),
+     * чтобы админ видел осмысленный канал, а не FQCN.
+     */
+    private function channelName(NotificationChannel $channel): string
+    {
+        $short = (new ReflectionClass($channel))->getShortName();
+
+        return str_replace('NotificationChannel', '', $short) ?: $short;
     }
 }

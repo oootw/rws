@@ -21,7 +21,7 @@ beforeEach(function (): void {
 
     $this->actingAs(
         new AdminUser([
-            'id' => 'admin',
+            'id' => AdminUser::ID,
             'email' => 'dev@test.local',
             'name' => 'Dev',
             'password' => Hash::make('test-password-strong-12'),

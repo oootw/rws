@@ -37,6 +37,7 @@ final readonly class NotifyAboutNegativeReviewHandler
                 new NotificationAction('Решено', "review:{$command->reviewId}:resolved"),
                 new NotificationAction('Архив', "review:{$command->reviewId}:archived"),
             ],
+            kind: 'negative_review',
         ));
     }
 }

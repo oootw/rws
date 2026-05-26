@@ -74,6 +74,14 @@ function fakePlacesRepository(array $places = []): PlaceRepository
         {
             return count($this->findAllByOwner($ownerId));
         }
+
+        public function delete(PlaceId $id): void
+        {
+            $this->places = array_values(array_filter(
+                $this->places,
+                static fn (Place $place): bool => ! $place->id->equals($id),
+            ));
+        }
     };
 }
 

@@ -16,7 +16,7 @@ use Filament\Panel;
 function makeAdminUser(array $overrides = []): AdminUser
 {
     return new AdminUser(array_merge([
-        'id' => 'admin',
+        'id' => AdminUser::ID,
         'email' => 'dev@test.local',
         'name' => 'Dev',
         'password' => '$2y$04$abcdefghijklmnopqrstuvwxyz0123456789ABCDEF',
@@ -49,7 +49,7 @@ it('getFilamentName возвращает имя из атрибутов', functi
 });
 
 it('getFilamentName fallback на "Admin" при отсутствии name', function (): void {
-    $user = new AdminUser(['id' => 'admin', 'email' => 'x@x.io', 'password' => 'h']);
+    $user = new AdminUser(['id' => AdminUser::ID, 'email' => 'x@x.io', 'password' => 'h']);
 
     expect($user->getFilamentName())->toBe('Admin');
 });
@@ -63,13 +63,13 @@ it('getFilamentAvatarUrl возвращает null (используется д�
 });
 
 it('getKey возвращает стабильный идентификатор', function (): void {
-    expect(makeAdminUser()->getKey())->toBe('admin');
+    expect(makeAdminUser()->getKey())->toBe(AdminUser::ID);
 });
 
-it('getKey fallback на "admin" если id отсутствует', function (): void {
+it('getKey fallback на канонический UUID если id отсутствует', function (): void {
     $user = new AdminUser(['email' => 'x@x.io', 'password' => 'h', 'name' => 'A']);
 
-    expect($user->getKey())->toBe('admin');
+    expect($user->getKey())->toBe(AdminUser::ID);
 });
 
 it('getAttributeValue читает атрибуты из массива', function (): void {
@@ -87,5 +87,15 @@ it('getAuthPassword возвращает hashed пароль', function (): void
 });
 
 it('getAuthIdentifier возвращает id', function (): void {
-    expect(makeAdminUser()->getAuthIdentifier())->toBe('admin');
+    expect(makeAdminUser()->getAuthIdentifier())->toBe(AdminUser::ID);
+});
+
+it('remember token отключён и setRememberToken — no-op', function (): void {
+    $user = makeAdminUser();
+
+    expect($user->getRememberToken())->toBeNull();
+
+    $user->setRememberToken('should-be-ignored');
+
+    expect($user->getRememberToken())->toBeNull();
 });

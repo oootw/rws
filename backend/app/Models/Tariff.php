@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'places_limit',
     'features',
     'is_active',
+    'is_default',
 ])]
 class Tariff extends Model
 {
@@ -28,6 +29,7 @@ class Tariff extends Model
             'places_limit' => 'integer',
             'features' => 'array',
             'is_active' => 'boolean',
+            'is_default' => 'boolean',
         ];
     }
 

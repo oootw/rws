@@ -22,6 +22,7 @@ final readonly class SendWeeklyDigestHandler
             contact: $command->contact,
             text: $text,
             emailSubject: "Отчёт за неделю — {$command->placeTitle}",
+            kind: 'weekly_digest',
         ));
     }
 

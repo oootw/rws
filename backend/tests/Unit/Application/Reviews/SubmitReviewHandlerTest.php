@@ -28,6 +28,13 @@ function fakeReviewsRepo(): ReviewRepository
         {
             return $this->saved !== null && $this->saved->id->equals($id) ? $this->saved : null;
         }
+
+        public function delete(ReviewId $id): void
+        {
+            if ($this->saved !== null && $this->saved->id->equals($id)) {
+                $this->saved = null;
+            }
+        }
     };
 }
 

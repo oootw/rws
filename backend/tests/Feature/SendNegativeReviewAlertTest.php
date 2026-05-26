@@ -2,6 +2,10 @@
 
 declare(strict_types=1);
 
+use App\Application\Iam\GetOwnerById\GetOwnerByIdHandler;
+use App\Application\Notifications\NotifyAboutNegativeReview\NotifyAboutNegativeReviewHandler;
+use App\Domain\Iam\OwnerId;
+use App\Domain\Iam\OwnerRepository;
 use App\Jobs\SendNegativeReviewAlert;
 use App\Models\Place;
 use App\Models\Review;
@@ -27,8 +31,8 @@ it('доставляет алерт при выполнении задачи', f
     ]);
 
     (new SendNegativeReviewAlert((string) $review->id))->handle(
-        app(App\Application\Iam\GetOwnerById\GetOwnerByIdHandler::class),
-        app(App\Application\Notifications\NotifyAboutNegativeReview\NotifyAboutNegativeReviewHandler::class),
+        app(GetOwnerByIdHandler::class),
+        app(NotifyAboutNegativeReviewHandler::class),
     );
 
     app(Nutgram::class)->assertCalled('sendMessage');
@@ -36,8 +40,27 @@ it('доставляет алерт при выполнении задачи', f
 
 it('игнорирует задачу если отзыв не найден', function (): void {
     (new SendNegativeReviewAlert('00000000-0000-0000-0000-000000000000'))->handle(
-        app(App\Application\Iam\GetOwnerById\GetOwnerByIdHandler::class),
-        app(App\Application\Notifications\NotifyAboutNegativeReview\NotifyAboutNegativeReviewHandler::class),
+        app(GetOwnerByIdHandler::class),
+        app(NotifyAboutNegativeReviewHandler::class),
+    );
+
+    app(Nutgram::class)->assertNoReply();
+});
+
+it('игнорирует задачу если владелец точки не найден', function (): void {
+    $owner = User::factory()->create();
+    $place = Place::factory()->for($owner)->create();
+    $review = Review::factory()->for($place)->create();
+
+    $owners = Mockery::mock(OwnerRepository::class);
+    $owners->shouldReceive('findById')
+        ->once()
+        ->with(Mockery::on(fn (OwnerId $id): bool => $id->value === (string) $owner->id))
+        ->andReturn(null);
+
+    (new SendNegativeReviewAlert((string) $review->id))->handle(
+        new GetOwnerByIdHandler($owners),
+        app(NotifyAboutNegativeReviewHandler::class),
     );
 
     app(Nutgram::class)->assertNoReply();

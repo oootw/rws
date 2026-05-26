@@ -14,4 +14,11 @@ interface TariffRepository
      * тарифа в БД нет.
      */
     public function findDefault(): ?Tariff;
+
+    /**
+     * Делает указанный тариф единственным is_default. Инвариант «ровно один
+     * default» — ответственность реализации; use case вызывает это под
+     * транзакцией.
+     */
+    public function markAsOnlyDefault(TariffId $id): void;
 }

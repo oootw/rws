@@ -42,7 +42,7 @@ it('гость → 302 на редактирование конкретного 
 it('logout сбрасывает сессию админа', function (): void {
     $this->actingAs(
         new AdminUser([
-            'id' => 'admin',
+            'id' => AdminUser::ID,
             'email' => 'dev@test.local',
             'name' => 'Dev',
             'password' => Hash::make('test-password-strong-12'),

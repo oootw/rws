@@ -41,6 +41,7 @@ final readonly class AlertAboutCriticalErrorHandler
             contact: new OwnerContact(telegramId: null, maxId: null, email: $command->ownerEmail),
             text: $body,
             emailSubject: self::SUBJECT,
+            kind: 'critical_error',
         ));
     }
 

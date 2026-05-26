@@ -33,6 +33,7 @@ final readonly class RemindAboutSubscriptionExpiryHandler
             contact: $command->contact,
             text: $text,
             emailSubject: 'Напоминание о подписке Guard Reviews',
+            kind: 'subscription_expiry_reminder',
         ));
     }
 }

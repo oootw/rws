@@ -18,4 +18,6 @@ interface PlaceRepository
     public function findAllByOwner(OwnerId $ownerId): array;
 
     public function countByOwner(OwnerId $ownerId): int;
+
+    public function delete(PlaceId $id): void;
 }

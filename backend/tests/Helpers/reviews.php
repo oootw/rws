@@ -82,5 +82,13 @@ function fakeReviewsRepository(array $reviews = []): ReviewRepository
 
             return null;
         }
+
+        public function delete(ReviewId $id): void
+        {
+            $this->reviews = array_values(array_filter(
+                $this->reviews,
+                static fn (Review $review): bool => ! $review->id->equals($id),
+            ));
+        }
     };
 }

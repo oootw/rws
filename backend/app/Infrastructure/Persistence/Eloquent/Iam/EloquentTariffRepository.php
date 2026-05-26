@@ -11,8 +11,6 @@ use App\Models\Tariff as TariffModel;
 
 final readonly class EloquentTariffRepository implements TariffRepository
 {
-    private const DEFAULT_TITLE = 'MVP';
-
     public function __construct(
         private TariffMapper $mapper,
     ) {}
@@ -26,8 +24,15 @@ final readonly class EloquentTariffRepository implements TariffRepository
 
     public function findDefault(): ?Tariff
     {
-        $model = TariffModel::query()->where('title', self::DEFAULT_TITLE)->first();
+        $model = TariffModel::query()->where('is_default', true)->first();
 
         return $model === null ? null : $this->mapper->toDomain($model);
+    }
+
+    public function markAsOnlyDefault(TariffId $id): void
+    {
+        TariffModel::query()->whereKey($id->value)->update(['is_default' => true]);
+        TariffModel::query()->whereKeyNot($id->value)->where('is_default', true)
+            ->update(['is_default' => false]);
     }
 }

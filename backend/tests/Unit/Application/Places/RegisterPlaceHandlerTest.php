@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 use App\Application\Places\RegisterPlace\RegisterPlaceCommand;
 use App\Application\Places\RegisterPlace\RegisterPlaceHandler;
+use App\Application\Places\Support\PlatformsBuilder;
 use App\Domain\Places\PlatformType;
 
 it('регистрирует точку и возвращает идентификатор', function (): void {
     $repo = fakePlacesRepository();
 
-    $placeId = (new RegisterPlaceHandler($repo, fakePlaceIdGenerator('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa')))
+    $placeId = (new RegisterPlaceHandler($repo, fakePlaceIdGenerator('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'), new PlatformsBuilder))
         ->handle(new RegisterPlaceCommand(
             ownerId: '22222222-2222-2222-2222-222222222222',
             title: '  Бар  ',
@@ -27,7 +28,7 @@ it('регистрирует точку и возвращает идентифи
 it('сохраняет только платформы с непустым URL', function (): void {
     $repo = fakePlacesRepository();
 
-    (new RegisterPlaceHandler($repo, fakePlaceIdGenerator('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa')))
+    (new RegisterPlaceHandler($repo, fakePlaceIdGenerator('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'), new PlatformsBuilder))
         ->handle(new RegisterPlaceCommand(
             ownerId: '22222222-2222-2222-2222-222222222222',
             title: 'Кафе',

@@ -28,6 +28,7 @@ final readonly class ConfirmSubscriptionRenewedHandler
             contact: $command->contact,
             text: $text,
             emailSubject: 'Подписка Guard Reviews продлена',
+            kind: 'subscription_renewed',
         ));
     }
 

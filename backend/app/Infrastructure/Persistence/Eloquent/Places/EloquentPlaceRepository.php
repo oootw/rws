@@ -48,4 +48,9 @@ final readonly class EloquentPlaceRepository implements PlaceRepository
     {
         return PlaceModel::query()->where('user_id', $ownerId->value)->count();
     }
+
+    public function delete(PlaceId $id): void
+    {
+        PlaceModel::query()->whereKey($id->value)->delete();
+    }
 }

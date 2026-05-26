@@ -76,7 +76,7 @@ function immediateTransactionRunner(): TransactionRunner
 {
     return new class implements TransactionRunner
     {
-        public function run(callable $callback): mixed
+        public function run(\Closure $callback): mixed
         {
             return $callback();
         }

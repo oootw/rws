@@ -153,6 +153,7 @@ final class Owner
             telegramId: $this->telegramId?->value,
             maxId: $this->maxId,
             email: $this->email->value,
+            ownerId: $this->id->value,
         );
     }
 

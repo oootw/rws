@@ -15,6 +15,7 @@ final class TariffMapper
         return new Tariff(
             id: new TariffId((string) $model->id),
             title: (string) $model->title,
+            isDefault: (bool) $model->is_default,
         );
     }
 }

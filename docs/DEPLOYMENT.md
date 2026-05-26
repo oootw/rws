@@ -123,6 +123,12 @@ nano backend/.env
 #   TINKOFF_SECRET_KEY=
 #   FOUNDER_TELEGRAM_USERNAME=
 #   (опц.) YANDEX_CAPTCHA_CLIENT_KEY / SERVER_KEY
+#
+#   # Админ-панель Filament — https://otziv.space/admin
+#   ADMIN_EMAIL=admin@otziv.space
+#   ADMIN_PASSWORD_HASH=              ← заполнится через `php artisan admin:password --show-env`
+#   ADMIN_NAME=Admin
+#   ADMIN_PANEL_PATH=admin            ← необязательно, дефолт 'admin'
 
 # ВАЖНО: из РФ VDS api.telegram.org заблокирован Роскомнадзором.
 # Поднимите свой relay вне РФ (готовый стек: deploy/telegram-proxy/) и пропишите:
@@ -140,6 +146,14 @@ make prod-down && make prod-up   # перезапуск с новым ключо
 # Привязываем Telegram webhook
 make prod-shell
   php artisan nutgram:hook:set https://otziv.space/api/webhooks/telegram
+  # Создаём админский пароль (один раз):
+  php artisan admin:password --show-env
+  # → выведет строку 'ADMIN_PASSWORD_HASH=...', скопируйте в backend/.env
+  exit
+
+# После записи хеша в .env:
+make prod-shell
+  php artisan config:clear
   exit
 ```
 
@@ -224,6 +238,54 @@ Tinkoff боевой/тестовый — два разных терминала
    - В таблице `analytics_action_logs` появится запись.
 
 Прод-стенд — то же самое, но с боевым терминалом и без `?tenant=` в URL.
+
+---
+
+## 4.1. Админ-панель (`/admin`)
+
+Filament v5, монтируется на `https://<домен>/admin` (см. `ADMIN_PANEL_PATH`).
+Один супер-админ из `.env`, отдельный guard `admin`, без таблицы `admin_users`.
+
+### Создание / смена пароля
+
+```bash
+make prod-shell
+  # Интерактивно — спросит пароль:
+  php artisan admin:password
+  # Или сразу строкой для .env:
+  php artisan admin:password --show-env
+  exit
+
+# Запишите хеш в backend/.env (ADMIN_PASSWORD_HASH=...), затем:
+make prod-shell
+  php artisan config:clear
+  exit
+```
+
+### Что доступно
+
+| Раздел                       | Чтение | Запись (через Application use cases) |
+|------------------------------|--------|--------------------------------------|
+| Владельцы                    | ✓      | Профиль, подписка, тариф, удаление, имперсонация (Sanctum PAT с TTL 15 мин). |
+| Точки                        | ✓      | Title/platforms/обложка, активация/деактивация, удаление (каскадно reviews и action_logs). QR preview/download. |
+| Отзывы                       | ✓      | Смена статуса, удаление (пишет в `action_logs` тип `admin_deleted_review`), переотправка алерта. Без создания. |
+| Тарифы                       | ✓      | Прямой CRUD через Eloquent + action `set_default` (атомарно гарантирует «ровно один is_default»). |
+| Платежи                      | ✓      | **Read-only**. Actions: `mark_failed` (Pending → Failed), `refire_webhook` — **только не-production** (`!app()->isProduction()`). |
+
+### Production-safety
+
+- Все mutating-actions, имеющие внешний эффект (`refire_webhook`, в Фазе 6 — `send_test_message`) скрыты на проде через `->visible(fn () => ! app()->isProduction())`.
+- Удаления требуют `requiresConfirmation()`.
+- Имперсонационный токен — Sanctum PAT с ability `impersonated`, plain-text показывается один раз.
+
+### Защита (фаза 6 — в работе)
+
+Сейчас `/admin` закрыт только Filament-логином. Для prod рекомендуется:
+- Caddy basic-auth поверх `/admin` (опц.) — настраивается в `deploy/proxy/Caddyfile`.
+- Throttling: `THROTTLE_ADMIN=60,1` (60 req/min).
+- IP allow-list через env (планируется).
+
+Подробнее — `backend/админка-план.md` (раздел «Фаза 6 — полировка и безопасность»).
 
 ---
 
@@ -330,6 +392,9 @@ gunzip -c /srv/backups/prod-2026-05-24.sql.gz | \
 | Поддомен `tester.staging.otziv.space` не открывается | Caddy лог | DNS wildcard не настроен или Caddy получил 404 от `ask`. Проверь `TLS_ALLOWED_DOMAINS` и DNS `*.staging.otziv.space`. |
 | Все ссылки `https://` стали `http://` в письмах | `backend/.env` | Не доверяем proxy. Уже исправлено в `bootstrap/app.php` (`trustProxies('*')`); убедитесь, что используете актуальный код. |
 | `make prod-up` зависает на «waiting for postgres» | `make prod-logs postgres` | Пароль БД поменяли, а volume старый. Либо вернуть пароль, либо `docker volume rm guard-prod_postgres_data` (⚠ потеряете данные). |
+| `/admin` отдаёт 419 / "These credentials do not match" сразу после ввода | `make prod-shell php artisan tinker` | Проверь `config('guardreviews.admin.email')` и `password_hash`. Скорее всего обновил `.env`, но не сделал `php artisan config:clear`. |
+| `/admin` отдаёт 500 / `EncryptCookies` | logs | `APP_KEY` пустой — `make prod-key && make prod-down && make prod-up`. |
+| Action `refire_webhook` не виден в админке на staging | — | Проверь `APP_ENV=staging` (не `production`) в `backend/.env` — action скрыт через `! app()->isProduction()`. |
 
 ---
 
@@ -343,6 +408,10 @@ gunzip -c /srv/backups/prod-2026-05-24.sql.gz | \
 - [ ] Tinkoff webhook secret-key хранится только в `backend/.env`.
 - [ ] Тестовый бот ≠ боевой бот (один токен = один webhook).
 - [ ] Бэкап `postgres_data` настроен и проверен восстановлением.
+- [ ] `ADMIN_PASSWORD_HASH` сгенерирован через `php artisan admin:password --show-env`, длинный (≥ 12 символов), разный у prod и staging.
+- [ ] `ADMIN_EMAIL` ≠ публичный owner-email (не используется в Telegram-боте/уведомлениях).
+- [ ] На production проверено, что `refire_webhook` action в `/admin/payment-transactions/<id>` скрыт (он `visible(!app()->isProduction())`).
+- [ ] (опц., Фаза 6) Caddy basic-auth поверх `/admin`.
 
 ---
 

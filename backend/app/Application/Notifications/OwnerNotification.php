@@ -9,7 +9,9 @@ use App\Domain\Notifications\OwnerContact;
 /**
  * Описание уведомления, которое нужно доставить владельцу.
  * Канал-независимое представление: text — общий, subject — для e-mail,
- * actions — для каналов с интерактивом.
+ * actions — для каналов с интерактивом. kind — машинно-читаемый тип
+ * (negative_review/subscription_renewed/...) для notification_deliveries
+ * и админ-аналитики.
  */
 final readonly class OwnerNotification
 {
@@ -21,5 +23,6 @@ final readonly class OwnerNotification
         public string $text,
         public string $emailSubject,
         public array $actions = [],
+        public string $kind = 'unknown',
     ) {}
 }

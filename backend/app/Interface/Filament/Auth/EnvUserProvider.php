@@ -27,7 +27,7 @@ use SensitiveParameter;
 final readonly class EnvUserProvider implements UserProvider
 {
     /** Стабильный «id» для сессии — провайдер у нас один-единственный пользователь. */
-    private const ADMIN_ID = 'admin';
+    private const ADMIN_ID = AdminUser::ID;
 
     public function __construct(
         private Config $config,
