@@ -39,7 +39,15 @@ final class TariffForm
                         ->numeric()
                         ->minValue(0)
                         ->required()
-                        ->helperText('Хранится в минимальных единицах валюты (копейки).'),
+                        ->helperText('Базовая цена за первую точку. В копейках.'),
+
+                    TextInput::make('extra_place_price')
+                        ->label('Доплата за точку, коп.')
+                        ->numeric()
+                        ->minValue(0)
+                        ->required()
+                        ->default(0)
+                        ->helperText('Доплата за каждую N-ю точку сверх первой. В копейках.'),
 
                     TextInput::make('duration_days')
                         ->label('Длительность, дней')

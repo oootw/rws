@@ -125,6 +125,16 @@ return [
     | Пустые значения отключают вход в админку.
     */
 
+    /*
+    |--------------------------------------------------------------------------
+    | Owner login (magic code via Telegram)
+    |--------------------------------------------------------------------------
+    */
+
+    'owner_login' => [
+        'ttl_seconds' => (int) env('OWNER_LOGIN_TTL_SECONDS', 600),
+    ],
+
     'admin' => [
         'path' => env('ADMIN_PANEL_PATH', 'admin'),
         'email' => env('ADMIN_EMAIL'),

@@ -24,6 +24,9 @@ final class TariffInfolist
                     TextEntry::make('price')
                         ->label('Цена')
                         ->formatStateUsing(fn (int $state): string => number_format($state / 100, 2, ',', ' ').' ₽'),
+                    TextEntry::make('extra_place_price')
+                        ->label('Доплата за точку')
+                        ->formatStateUsing(fn (int $state): string => number_format($state / 100, 2, ',', ' ').' ₽'),
                     TextEntry::make('duration_days')->label('Длительность, дней'),
                     TextEntry::make('places_limit')->label('Лимит точек'),
                 ]),

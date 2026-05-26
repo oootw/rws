@@ -1,0 +1,1 @@
+export { formatKopecks } from './formatPrice';

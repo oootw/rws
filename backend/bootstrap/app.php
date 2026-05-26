@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsureSessionMatchesTenant;
 use App\Http\Middleware\EnsureSubscriptionActive;
 use App\Http\Middleware\ResolvePublicPlace;
 use App\Http\Middleware\ResolveTenantBySubdomain;
@@ -21,6 +22,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'tenant' => ResolveTenantBySubdomain::class,
+            'tenant-owns-session' => EnsureSessionMatchesTenant::class,
             'subscription.active' => EnsureSubscriptionActive::class,
             'resolve.public.place' => ResolvePublicPlace::class,
         ]);

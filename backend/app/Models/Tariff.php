@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 #[Fillable([
     'title',
     'price',
+    'extra_place_price',
     'duration_days',
     'places_limit',
     'features',
@@ -25,6 +26,7 @@ class Tariff extends Model
     {
         return [
             'price' => 'integer',
+            'extra_place_price' => 'integer',
             'duration_days' => 'integer',
             'places_limit' => 'integer',
             'features' => 'array',

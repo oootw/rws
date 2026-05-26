@@ -17,9 +17,10 @@ class TariffFactory extends Factory
         return [
             'title' => 'MVP',
             'price' => 99000,
+            'extra_place_price' => 29000,
             'duration_days' => 30,
             'places_limit' => 1,
-            'features' => ['extra_place_price' => 29000],
+            'features' => null,
             'is_active' => true,
         ];
     }

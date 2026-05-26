@@ -17,6 +17,12 @@
     "jsx": "react-jsx",
     "baseUrl": ".",
     "paths": {
+      "@/app/*": ["src/app/*"],
+      "@/pages/*": ["src/pages/*"],
+      "@/widgets/*": ["src/widgets/*"],
+      "@/features/*": ["src/features/*"],
+      "@/entities/*": ["src/entities/*"],
+      "@/shared/*": ["src/shared/*"],
       "@/*": ["src/*"]
     },
     "types": ["vite/client", "vite-plugin-pwa/client", "vitest/globals"]

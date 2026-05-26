@@ -17,9 +17,12 @@ mobile-first. Полностью адаптирован под телефоны 
 | Фаза | Статус | Краткое содержание |
 |------|--------|--------------------|
 | 0 | ✅ сделано | React-SPA каркас + backend SPA-route + Sanctum guard `owner` + 5 тестов |
-| **0.5** | 🟡 **обязательно перед Фазой 1** | Миграция фронта в FSD + ESLint-правила (FSD-границы, no-class, no-direct-fetch). См. § 1.6. |
-| 1 | ⏳ после 0.5 | Auth через Telegram magic-code |
-| 2–8 | ⏳ запланировано | см. ниже |
+| 0.5 | ✅ сделано | Миграция фронта в FSD + ESLint-правила (FSD-границы, no-class, no-direct-fetch), shared/ui (Button/Card/Input), once-memoized ensureCsrf. См. § 1.6. |
+| 1 | ✅ сделано | Auth через Telegram magic-code: domain `OwnerLoginRequest`, handlers `RequestOwnerLogin`/`ExchangeOwnerLoginCode`, миграция `owner_login_requests`, команда `/login`, HTTP `/auth/exchange`+`/auth/logout`+`/me`, middleware `EnsureSessionMatchesTenant`, frontend `entities/session` + `features/auth-by-telegram` + `RequireSession` guard. Тесты: 7 domain, 6 application, 7 feature, 4 frontend. |
+| 2 | ✅ сделано | Dashboard + просмотр: `OwnerDashboardReader` (KPI 7d + daily series), `OwnerReviewsReader` (фильтры status/place/date + пагинация), HTTP `/dashboard`/`/places`/`/places/{id}`/`/reviews`, frontend `entities/{place,review,analytics}` + widgets `kpi-cards`/`reviews-table` + страницы dashboard/places-list/place-detail/reviews-list. Тесты: 13 feature, 7 frontend. |
+| 3 | ✅ сделано | Управление точками + per-place ценообразование: `tariffs.extra_place_price` (kopecks) редактируется в Filament, `Tariff` VO с basePrice/extraPlacePrice, `CalculateSubscriptionAmount` берёт из тарифа owner'а (fallback на env), новый `CalculatePlaceCharge` (pro-rata за оставшиеся дни + `monthly_delta` для предупреждения о след. месяце). HTTP `POST/PATCH/DELETE /places`, `POST /places/{id}/toggle`, `GET /places/charge-preview` с ownership-guards через `GetPlaceForOwner`. Frontend `features/{create-place,update-place,toggle-place-activation,delete-place}` + `widgets/place-form` + страницы place-create/place-edit + `ChargePreviewBanner`. Тесты: 5 unit, 9 feature CRUD, 3 frontend banner. |
+| **4** | 🟡 **следующая** | Управление отзывами (смена статуса) |
+| 5–8 | ⏳ запланировано | см. ниже |
 
 ### Что уже сделано в Фазе 0
 

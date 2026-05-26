@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Infrastructure\ServiceProviders;
 
 use App\Application\Reviews\Listeners\NotifyOwnerAboutNegativeReview;
+use App\Application\Reviews\ListOwnerReviews\OwnerReviewsReader;
 use App\Application\Reviews\ListRecentReviewsForOwner\RecentReviewsReader;
 use App\Application\Shared\Events\DomainEventDispatcher;
 use App\Domain\Reviews\Events\NegativeReviewSubmitted;
@@ -13,6 +14,7 @@ use App\Domain\Reviews\ReviewRepository;
 use App\Domain\Shared\Clock\Clock;
 use App\Infrastructure\Clock\SystemClock;
 use App\Infrastructure\Events\LaravelDomainEventDispatcher;
+use App\Infrastructure\Persistence\Eloquent\Reviews\EloquentOwnerReviewsReader;
 use App\Infrastructure\Persistence\Eloquent\Reviews\EloquentRecentReviewsReader;
 use App\Infrastructure\Persistence\Eloquent\Reviews\EloquentReviewRepository;
 use App\Infrastructure\Persistence\Eloquent\Reviews\UuidReviewIdGenerator;
@@ -32,6 +34,7 @@ final class ReviewsServiceProvider extends ServiceProvider
         ReviewRepository::class => EloquentReviewRepository::class,
         ReviewIdGenerator::class => UuidReviewIdGenerator::class,
         RecentReviewsReader::class => EloquentRecentReviewsReader::class,
+        OwnerReviewsReader::class => EloquentOwnerReviewsReader::class,
         DomainEventDispatcher::class => LaravelDomainEventDispatcher::class,
     ];
 

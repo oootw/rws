@@ -4,6 +4,7 @@ WORKDIR /build
 
 COPY frontend/package.json frontend/package-lock.json ./
 COPY frontend/scan/package.json ./scan/
+COPY frontend/owner/package.json ./owner/
 COPY frontend/shared/package.json ./shared/
 
 RUN npm ci --ignore-scripts

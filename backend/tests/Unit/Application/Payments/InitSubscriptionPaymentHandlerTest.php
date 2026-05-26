@@ -35,7 +35,7 @@ function initSubscriptionPaymentHandler(
 
     return new InitSubscriptionPaymentHandler(
         new GetOwnerByIdHandler($owners),
-        new CalculateSubscriptionAmountHandler(fakePlacesRepository(), $config),
+        new CalculateSubscriptionAmountHandler($owners, $tariffs, fakePlacesRepository(), $config),
         $tariffs,
         fakePaymentTransactionRepository([]),
         fakePaymentTransactionIdGenerator(),
@@ -88,10 +88,12 @@ it('помечает транзакцию неуспешной при отказ
         'guardreviews.subscription.base_price' => 99000,
         'guardreviews.subscription.extra_place_price' => 10000,
     ]);
+    $owners = fakeOwnerRepository([sampleOwner()]);
+    $tariffs = fakeTariffRepository(defaultTariff(), [defaultTariff()]);
     $handler = new InitSubscriptionPaymentHandler(
-        new GetOwnerByIdHandler(fakeOwnerRepository([sampleOwner()])),
-        new CalculateSubscriptionAmountHandler(fakePlacesRepository(), $config),
-        fakeTariffRepository(defaultTariff(), [defaultTariff()]),
+        new GetOwnerByIdHandler($owners),
+        new CalculateSubscriptionAmountHandler($owners, $tariffs, fakePlacesRepository(), $config),
+        $tariffs,
         $repo,
         fakePaymentTransactionIdGenerator(),
         fakeAcquirerGateway(response: InitPaymentResponse::failure('Отказ банка')),
@@ -112,10 +114,12 @@ it('сохраняет внешний id при успешной инициал�
         'guardreviews.subscription.base_price' => 99000,
         'guardreviews.subscription.extra_place_price' => 10000,
     ]);
+    $owners = fakeOwnerRepository([sampleOwner()]);
+    $tariffs = fakeTariffRepository(defaultTariff(), [defaultTariff()]);
     $handler = new InitSubscriptionPaymentHandler(
-        new GetOwnerByIdHandler(fakeOwnerRepository([sampleOwner()])),
-        new CalculateSubscriptionAmountHandler(fakePlacesRepository(), $config),
-        fakeTariffRepository(defaultTariff(), [defaultTariff()]),
+        new GetOwnerByIdHandler($owners),
+        new CalculateSubscriptionAmountHandler($owners, $tariffs, fakePlacesRepository(), $config),
+        $tariffs,
         $repo,
         fakePaymentTransactionIdGenerator(),
         fakeAcquirerGateway(response: InitPaymentResponse::success('https://pay.test/session', '888')),

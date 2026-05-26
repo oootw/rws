@@ -4,6 +4,7 @@
 
 use App\Interface\TelegramBot\Callbacks\ReviewCallbackHandler;
 use App\Interface\TelegramBot\Commands\BotCommandHandler;
+use App\Interface\TelegramBot\Commands\LoginCommandHandler;
 use App\Interface\TelegramBot\Conversations\AddPlaceConversation;
 use App\Interface\TelegramBot\Conversations\OnboardingConversation;
 use App\Interface\TelegramBot\Middleware\RequireRegisteredOwner;
@@ -30,6 +31,9 @@ $bot->group(function (Nutgram $bot): void {
 
     $bot->onCommand('link', [BotCommandHandler::class, 'link'])
         ->description('Привязать MAX');
+
+    $bot->onCommand('login', LoginCommandHandler::class)
+        ->description('Получить код для входа в кабинет');
 })->middleware(RequireRegisteredOwner::class);
 
 $bot->onCallbackQueryData('place:info:{placeId}', [BotCommandHandler::class, 'placeInfo']);

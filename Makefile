@@ -5,7 +5,7 @@
 	staging-up staging-down staging-logs staging-key staging-shell staging-migrate \
 	prod-up prod-down prod-logs prod-key prod-shell prod-migrate \
 	proxy-net proxy-up proxy-down proxy-logs proxy-reload \
-	test test-coverage pint build-local
+	test test-coverage test-coverage-all pint build-local
 
 COMPOSE_LOCAL := docker compose -f docker-compose.base.yml -f docker-compose.local.yml
 COMPOSE_STAGING := docker compose -f docker-compose.base.yml -f docker-compose.staging.yml
@@ -41,6 +41,7 @@ help:
 	@echo "  Тесты / линтер"
 	@echo "    make test             pest"
 	@echo "    make test-coverage    покрытие кода backend (MIN=80 — порог)"
+	@echo "    make test-coverage-all  backend + все frontend-приложения (MIN=N для backend)"
 	@echo "    make pint             laravel/pint"
 
 # -- init --
@@ -146,6 +147,13 @@ test-coverage:
 		$(if $(MIN),--min $(MIN),) \
 		$(if $(HTML),--html $(HTML),) \
 		$(if $(DOCKER),--docker,)
+
+test-coverage-all:
+	@bash scripts/test-coverage-all.sh \
+		$(if $(MIN),--min $(MIN),) \
+		$(if $(BACKEND_ONLY),--backend-only,) \
+		$(if $(FRONTEND_ONLY),--frontend-only,) \
+		$(if $(NO_BACKEND_FAIL),--no-backend-fail,)
 
 pint:
 	cd backend && ./vendor/bin/pint

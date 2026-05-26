@@ -15,6 +15,8 @@ final class TariffMapper
         return new Tariff(
             id: new TariffId((string) $model->id),
             title: (string) $model->title,
+            basePrice: (int) $model->price,
+            extraPlacePrice: (int) $model->extra_place_price,
             isDefault: (bool) $model->is_default,
         );
     }
