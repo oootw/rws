@@ -16,10 +16,12 @@ use App\Models\Tariff;
 use App\Models\User;
 use DateTimeImmutable;
 use Filament\Actions\Action;
+use Filament\Actions\BulkAction;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 
 /**
  * Фабрика custom-action'ов для OwnerResource.
@@ -118,6 +120,81 @@ final class OwnerActionFactory
 
                 Notification::make()
                     ->title('Тариф обновлён')
+                    ->success()
+                    ->send();
+            });
+    }
+
+    /**
+     * Bulk-продление подписки. Bulk-delete намеренно не делаем —
+     * слишком опасно (см. п. 8 админка-плана).
+     */
+    public static function bulkExtendSubscription(): BulkAction
+    {
+        return BulkAction::make('bulk_extend_subscription')
+            ->label('Продлить подписку')
+            ->icon('heroicon-o-clock')
+            ->color('success')
+            ->requiresConfirmation()
+            ->modalHeading('Продлить подписку у выбранных владельцев')
+            ->schema([
+                TextInput::make('days')
+                    ->label('Дней')
+                    ->numeric()
+                    ->minValue(1)
+                    ->maxValue(3650)
+                    ->default((int) config('guardreviews.subscription.duration_days', 30))
+                    ->required(),
+            ])
+            ->action(function (EloquentCollection $records, array $data): void {
+                $handler = app(ExtendSubscriptionHandler::class);
+                $days = (int) $data['days'];
+
+                foreach ($records as $record) {
+                    $handler->handle(new ExtendSubscriptionCommand(
+                        ownerId: (string) $record->id,
+                        durationDays: $days,
+                    ));
+                }
+
+                Notification::make()
+                    ->title('Подписки продлены')
+                    ->body('Обработано: '.$records->count())
+                    ->success()
+                    ->send();
+            });
+    }
+
+    public static function bulkChangeTariff(): BulkAction
+    {
+        return BulkAction::make('bulk_change_tariff')
+            ->label('Сменить тариф')
+            ->icon('heroicon-o-arrows-right-left')
+            ->requiresConfirmation()
+            ->modalHeading('Сменить тариф у выбранных владельцев')
+            ->schema([
+                Select::make('tariff_id')
+                    ->label('Тариф')
+                    ->options(fn () => Tariff::query()->pluck('title', 'id')->all())
+                    ->searchable()
+                    ->preload()
+                    ->nullable()
+                    ->helperText('Оставьте пустым, чтобы снять тариф.'),
+            ])
+            ->action(function (EloquentCollection $records, array $data): void {
+                $handler = app(ChangeOwnerTariffHandler::class);
+                $tariffId = ! empty($data['tariff_id']) ? (string) $data['tariff_id'] : null;
+
+                foreach ($records as $record) {
+                    $handler->handle(new ChangeOwnerTariffCommand(
+                        ownerId: (string) $record->id,
+                        tariffId: $tariffId,
+                    ));
+                }
+
+                Notification::make()
+                    ->title('Тариф обновлён')
+                    ->body('Обработано: '.$records->count())
                     ->success()
                     ->send();
             });

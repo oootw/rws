@@ -130,6 +130,11 @@ return [
         'email' => env('ADMIN_EMAIL'),
         'password_hash' => env('ADMIN_PASSWORD_HASH'),
         'name' => env('ADMIN_NAME', 'Developer'),
+        // CSV из IP и/или CIDR-блоков; пустое значение = allow-list отключён.
+        // Пример: ADMIN_ALLOWED_IPS="203.0.113.5,198.51.100.0/24"
+        'allowed_ips' => env('ADMIN_ALLOWED_IPS'),
+        // Лимит запросов в админку: <attempts>,<minutes>. По умолчанию 60 в минуту.
+        'throttle' => env('THROTTLE_ADMIN', '60,1'),
     ],
 
 ];

@@ -50,6 +50,14 @@ return [
             'driver' => 'session',
             'provider' => 'env-admin',
         ],
+
+        // Гард Owner-панели (SPA на /owner). Session-driver поверх Sanctum
+        // (SPA-cookie аутентификация). Provider = тот же `users` (Eloquent\User).
+        // Tenant-проверка делается отдельным middleware EnsureSessionMatchesTenant.
+        'owner' => [
+            'driver' => 'session',
+            'provider' => 'users',
+        ],
     ],
 
     /*

@@ -1,5 +1,6 @@
 <?php
 
+use App\Infrastructure\ServiceProviders\AdminServiceProvider;
 use App\Infrastructure\ServiceProviders\AnalyticsServiceProvider;
 use App\Infrastructure\ServiceProviders\IamServiceProvider;
 use App\Infrastructure\ServiceProviders\JobsServiceProvider;
@@ -8,6 +9,7 @@ use App\Infrastructure\ServiceProviders\PaymentsServiceProvider;
 use App\Infrastructure\ServiceProviders\PlacesServiceProvider;
 use App\Infrastructure\ServiceProviders\ReviewsServiceProvider;
 use App\Infrastructure\ServiceProviders\TelegramServiceProvider;
+use App\Interface\Filament\Audit\AdminAuditServiceProvider;
 use App\Interface\Filament\Auth\AdminAuthServiceProvider;
 use App\Providers\AppServiceProvider;
 use App\Providers\Filament\AdminPanelProvider;
@@ -16,6 +18,7 @@ return [
     AppServiceProvider::class,
     IamServiceProvider::class,
     AnalyticsServiceProvider::class,
+    AdminServiceProvider::class,
     NotificationsServiceProvider::class,
     PaymentsServiceProvider::class,
     PlacesServiceProvider::class,
@@ -23,5 +26,6 @@ return [
     TelegramServiceProvider::class,
     JobsServiceProvider::class,
     AdminAuthServiceProvider::class,
+    AdminAuditServiceProvider::class,
     AdminPanelProvider::class,
 ];

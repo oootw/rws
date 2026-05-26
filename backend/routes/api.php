@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\Public\PlaceController;
 use App\Http\Controllers\Api\Public\RedirectController;
 use App\Http\Controllers\Api\Public\ScanController;
 use App\Interface\Http\Controllers\Internal\TlsAllowController;
+use App\Interface\Http\Controllers\Owner\OwnerMeController;
 use App\Interface\Http\Controllers\Public\SubmitReviewController;
 use App\Interface\Http\Controllers\Webhook\TelegramWebhookController;
 use App\Interface\Http\Controllers\Webhook\TinkoffWebhookController;
@@ -33,4 +34,20 @@ Route::prefix('public')
             Route::post('places/{place}/reviews', SubmitReviewController::class)
                 ->middleware('throttle:10,1');
         });
+    });
+
+/*
+|--------------------------------------------------------------------------
+| Owner-панель API
+|--------------------------------------------------------------------------
+|
+| Фаза 0 — единственная заглушка `/me`. Реальные endpoints (auth/exchange,
+| dashboard, places, reviews, subscription, profile) добавляются в Фазах 1–6
+| из backend/docs/owner-panel-plan.md.
+|
+*/
+Route::prefix('owner')
+    ->middleware(['tenant'])
+    ->group(function (): void {
+        Route::get('me', OwnerMeController::class);
     });

@@ -118,6 +118,9 @@ final class OwnersTable
                         new DeleteOwnerCommand(ownerId: (string) $record->id),
                     )),
             ])
-            ->toolbarActions([]);
+            ->toolbarActions([
+                OwnerActionFactory::bulkExtendSubscription(),
+                OwnerActionFactory::bulkChangeTariff(),
+            ]);
     }
 }
