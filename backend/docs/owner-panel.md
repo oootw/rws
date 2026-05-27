@@ -146,6 +146,7 @@ app/Infrastructure/Persistence/Eloquent/  # Reader'ы и Repository-импл'ы
 | POST  | `/auth/logout`                          | Logout                                              |
 | GET   | `/me`                                   | Текущий owner (OwnerMeView)                         |
 | GET   | `/dashboard`                            | KPI 7д + daily series                               |
+| GET   | `/features`                             | Список фич тарифа owner-а (`{ features: string[] }`) |
 | GET   | `/places`                               | Список точек                                        |
 | GET   | `/places/{id}`                          | Точка с QR и платформами                            |
 | GET   | `/places/charge-preview`                | Pro-rata расчёт за добавление точки                 |
@@ -158,20 +159,25 @@ app/Infrastructure/Persistence/Eloquent/  # Reader'ы и Repository-импл'ы
 
 ### Требует активной подписки (402 если истекла)
 
-| Метод  | Путь                                  | Use case                          |
-|--------|---------------------------------------|-----------------------------------|
-| POST   | `/places`                             | RegisterPlace                     |
-| PATCH  | `/places/{id}`                        | UpdatePlace                       |
-| POST   | `/places/{id}/toggle`                 | ChangePlaceActivation             |
-| DELETE | `/places/{id}`                        | DeletePlace                       |
-| PATCH  | `/reviews/{id}/status`                | ChangeReviewStatus                |
+| Метод  | Путь                                  | Use case                          | Доп. guard                     |
+|--------|---------------------------------------|-----------------------------------|--------------------------------|
+| POST   | `/places`                             | RegisterPlace                     | `feature:multiple_places` (403)|
+| PATCH  | `/places/{id}`                        | UpdatePlace                       | —                              |
+| POST   | `/places/{id}/toggle`                 | ChangePlaceActivation             | —                              |
+| DELETE | `/places/{id}`                        | DeletePlace                       | —                              |
+| PATCH  | `/reviews/{id}/status`                | ChangeReviewStatus                | —                              |
+
+**Порядок гардов на платных мутациях:** `auth:owner` → `subscription.active:402` → `feature:<key>`.
+Сначала «оплата», потом «availability». Иначе пользователь без подписки получит 403
+вместо корректного 402 «иди продли».
 
 ### Коды ошибок (`ApiErrorCode`)
 
 `tenant_not_found`, `place_not_found`, `review_not_found`,
 `subscription_expired`, `platform_not_found`, `login_code_invalid`,
 `login_code_expired`, `login_code_already_consumed`,
-`session_tenant_mismatch`, `owner_not_linked_to_telegram`.
+`session_tenant_mismatch`, `owner_not_linked_to_telegram`,
+`feature_not_available`.
 
 Формат ответа на ошибку: `{ "message": "...", "code": "..." }`
 (+ `errors: { field: [msg] }` на 422 от FormRequest).
@@ -186,6 +192,7 @@ app/Infrastructure/Persistence/Eloquent/  # Reader'ы и Repository-импл'ы
 | Iam      | `ExchangeOwnerLoginCode`          | Command       |
 | Iam      | `GetOwnerById`                    | Query         |
 | Iam      | `GetOwnerSubscription`            | Query         |
+| Iam      | `GetOwnerFeatures`                | Query         |
 | Iam      | `UpdateOwnerProfile`              | Command       |
 | Iam      | `CalculateSubscriptionAmount`     | Query         |
 | Iam      | `CalculatePlaceCharge`            | Query         |
@@ -227,7 +234,23 @@ Use case = папка `Application/<Context>/<UseCase>/`, внутри —
    - валидация (422),
    - cross-tenant 403/404 (чужой ресурс),
    - subscription expired 402 (если мутация платная),
+   - feature_not_available 403 (если стоит `feature:<key>`),
    - auth required 401.
+
+### Добавить feature-gate (паттерн)
+
+1. **Domain.** Добавить case в `App\Domain\Iam\Feature` + строку в `label()`.
+   Backing-value стабилен навсегда (контракт с БД); переименование = миграция данных.
+2. **Filament.** Ничего не делать — `TariffForm` уже строит чекбоксы из `Feature::cases()`.
+3. **Backend.** На нужной route'е: `->middleware('feature:<key>')`. На платной
+   мутации — ПОСЛЕ `subscription.active:402` (см. порядок гардов в § 4).
+4. **Frontend (owner).** `<FeatureGate feature="<key>">…</FeatureGate>` (опц. с
+   `fallback={<UpsellCard …/>}`). Кеш фич владельца уже греется в `RequireSession`.
+5. **Тест.** В `OwnerFeatureGuardTest` — 200 с фичей, 403 без, плюс приоритет
+   402 над 403 при истёкшей подписке.
+6. **Scan-side фича?** Добавить в `GetPublicPlaceViewHandler::SCAN_FEATURES` (whitelist)
+   и расширить `ScanFeature` тип в `@guard-reviews/shared/types`. Owner-only фичи
+   на публичный endpoint НЕ утекают — фильтруются именно этим whitelist'ом.
 
 ### Frontend (FSD-цепочка)
 

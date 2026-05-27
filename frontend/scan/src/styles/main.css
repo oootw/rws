@@ -6,8 +6,8 @@
 
 /**
  * Scan-страница рисуется vanilla TS из render.ts (HTML-строки).
- * Поэтому брендовые классы держим как «рецепты» в @layer components:
- * render.ts остаётся без изменений, бренд приходит из shared токенов.
+ * Брендовые классы — Tailwind-утилиты прямо в разметке;
+ * рецепты для DRY живут в src/scan/styles.ts.
  */
 
 @layer base {
@@ -27,131 +27,6 @@
 
   #app {
     min-height: 100dvh;
-  }
-}
-
-@layer components {
-  /* --- Layout --- */
-  .page {
-    @apply min-h-screen flex items-center justify-center p-6;
-  }
-
-  .card {
-    @apply w-full max-w-[420px] bg-surface rounded-3xl p-7 shadow-soft;
-  }
-
-  .card--background {
-    @apply text-surface relative overflow-hidden;
-    background-size: cover;
-    background-position: center;
-  }
-
-  .card--background::before {
-    content: '';
-    @apply absolute inset-0;
-    background: linear-gradient(180deg, rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.65));
-  }
-
-  .card--background > * {
-    @apply relative z-[1];
-  }
-
-  /* --- Текст --- */
-  .title {
-    @apply m-0 mb-2 text-2xl font-bold text-center;
-  }
-
-  .subtitle {
-    @apply m-0 mb-6 text-center opacity-85;
-  }
-
-  .message {
-    @apply m-0 text-center;
-  }
-
-  .privacy-link {
-    @apply block mt-4 text-center text-xs opacity-75;
-  }
-
-  /* --- Звёзды --- */
-  .stars {
-    @apply flex justify-center gap-2 mt-4;
-  }
-
-  .star-button {
-    @apply appearance-none border-0 bg-transparent text-3xl leading-none
-           cursor-pointer p-1 text-warning;
-    transition: transform var(--motion-fast);
-  }
-
-  .star-button:hover,
-  .star-button:focus-visible {
-    @apply scale-110;
-  }
-
-  /* --- Кнопки --- */
-  .platform-list {
-    @apply grid gap-3;
-  }
-
-  .platform-button,
-  .primary-button {
-    @apply appearance-none w-full border-0 rounded-xl px-4 py-3.5
-           text-base font-semibold cursor-pointer;
-    transition: filter var(--motion-fast);
-  }
-
-  .platform-button {
-    @apply bg-ink-100 text-ink-900;
-  }
-
-  .platform-button:hover {
-    @apply bg-ink-200;
-  }
-
-  .primary-button {
-    @apply bg-accent text-accent-fg;
-  }
-
-  .primary-button:hover:not(:disabled) {
-    filter: brightness(1.05);
-  }
-
-  .primary-button:disabled {
-    @apply opacity-55 cursor-not-allowed;
-  }
-
-  /* --- Поля формы --- */
-  .field {
-    @apply grid gap-1.5 mb-4;
-  }
-
-  .field label {
-    @apply text-sm font-semibold;
-  }
-
-  .field input,
-  .field textarea {
-    @apply w-full bg-surface text-ink-900 border border-ink-200
-           rounded-xl px-4 py-3 text-base;
-    font: inherit;
-  }
-
-  .field input:focus,
-  .field textarea:focus {
-    @apply outline-none border-accent ring-4 ring-accent/15;
-  }
-
-  .field textarea {
-    @apply min-h-[120px] resize-y;
-  }
-
-  .consent {
-    @apply flex gap-2.5 items-start mb-4 text-sm;
-  }
-
-  .consent a {
-    @apply text-inherit underline;
   }
 }
 

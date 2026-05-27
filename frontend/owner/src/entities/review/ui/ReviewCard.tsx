@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react';
 import { Star } from 'lucide-react';
 
-import { Card } from '@/shared/ui';
+import { Badge, Card } from '@/shared/ui';
+import type { BadgeTone } from '@/shared/ui';
 
 import { formatReviewDate } from '../lib/formatDate';
 import { statusLabel } from '../lib/statusLabel';
@@ -12,11 +13,11 @@ type ReviewCardProps = {
   statusSlot?: ReactNode;
 };
 
-const statusToneClass: Record<Review['status'], string> = {
-  new: 'bg-danger/10 text-danger',
-  in_progress: 'bg-warning/15 text-warning',
-  resolved: 'bg-accent-soft text-accent',
-  archived: 'bg-ink-100 text-ink-500',
+const statusTone: Record<Review['status'], BadgeTone> = {
+  new: 'danger',
+  in_progress: 'warning',
+  resolved: 'accent',
+  archived: 'neutral',
 };
 
 export function ReviewCard({ review, statusSlot }: ReviewCardProps) {
@@ -32,14 +33,7 @@ export function ReviewCard({ review, statusSlot }: ReviewCardProps) {
           <span className="text-sm font-semibold">{review.place_title}</span>
         </div>
         {statusSlot ?? (
-          <span
-            className={[
-              'rounded-full px-2.5 py-0.5 text-xs font-medium',
-              statusToneClass[review.status],
-            ].join(' ')}
-          >
-            {statusLabel(review.status)}
-          </span>
+          <Badge tone={statusTone[review.status]}>{statusLabel(review.status)}</Badge>
         )}
       </header>
 

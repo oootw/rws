@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { MapPin, Plus } from 'lucide-react';
 
 import { PlaceCard, useOwnerPlacesQuery } from '@/entities/place';
+import { FeatureGate } from '@/entities/features';
 import { Card, EmptyState, Skeleton } from '@/shared/ui';
 
 const SKELETON_TILES = 4;
@@ -16,13 +17,15 @@ export function PlacesListPage() {
           <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Точки</h1>
           <p className="text-sm text-ink-500">Список ваших заведений и их QR-коды.</p>
         </div>
-        <Link
-          to="/places/new"
-          className="inline-flex items-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-sm font-medium text-accent-fg transition hover:brightness-105"
-        >
-          <Plus className="h-4 w-4" />
-          Добавить точку
-        </Link>
+        <FeatureGate feature="multiple_places">
+          <Link
+            to="/places/new"
+            className="inline-flex items-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-sm font-medium text-accent-fg transition hover:brightness-105"
+          >
+            <Plus className="h-4 w-4" />
+            Добавить точку
+          </Link>
+        </FeatureGate>
       </header>
 
       {places.isPending && (

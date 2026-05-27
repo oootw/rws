@@ -8,6 +8,7 @@ use App\Interface\Http\Controllers\Internal\TlsAllowController;
 use App\Interface\Http\Controllers\Owner\Auth\ExchangeOwnerLoginCodeController;
 use App\Interface\Http\Controllers\Owner\Auth\LogoutOwnerController;
 use App\Interface\Http\Controllers\Owner\OwnerDashboardController;
+use App\Interface\Http\Controllers\Owner\OwnerFeaturesController;
 use App\Interface\Http\Controllers\Owner\OwnerMeController;
 use App\Interface\Http\Controllers\Owner\OwnerPlacesController;
 use App\Interface\Http\Controllers\Owner\OwnerProfileController;
@@ -77,6 +78,8 @@ Route::prefix('owner')
 
             Route::get('dashboard', OwnerDashboardController::class);
 
+            Route::get('features', OwnerFeaturesController::class);
+
             Route::get('places', [OwnerPlacesController::class, 'index']);
             Route::get('places/charge-preview', [OwnerPlacesController::class, 'chargePreview']);
             Route::get('places/{place}', [OwnerPlacesController::class, 'show']);
@@ -92,8 +95,12 @@ Route::prefix('owner')
                 ->middleware('throttle:5,1');
 
             // Платные мутации: требуют активной подписки. 402 + subscription_expired.
+            // Порядок гардов: subscription.active (402) → feature (403). Сначала
+            // деньги — потом availability фичи, иначе UX «фича недоступна» спрячет
+            // настоящую проблему (отсутствие оплаты).
             Route::middleware('subscription.active:402')->group(function (): void {
-                Route::post('places', [OwnerPlacesController::class, 'store']);
+                Route::post('places', [OwnerPlacesController::class, 'store'])
+                    ->middleware('feature:multiple_places');
                 Route::patch('places/{place}', [OwnerPlacesController::class, 'update']);
                 Route::post('places/{place}/toggle', [OwnerPlacesController::class, 'toggle']);
                 Route::delete('places/{place}', [OwnerPlacesController::class, 'destroy']);

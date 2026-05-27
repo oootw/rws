@@ -20,7 +20,7 @@ class TariffFactory extends Factory
             'extra_place_price' => 29000,
             'duration_days' => 30,
             'places_limit' => 1,
-            'features' => null,
+            'features' => [],
             'is_active' => true,
         ];
     }

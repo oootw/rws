@@ -11,17 +11,17 @@
 |------|--------|--------|
 | A1   | ✅ сделано | Shared дизайн-токены: `frontend/shared/{design-tokens.ts, tailwind/preset.ts, styles/tokens.css}` + sync-тест |
 | A2   | ✅ сделано | Tailwind в `frontend/scan/` через тот же preset; `main.css` переписан на `@layer components` |
-| A3   | 🟡 **следующая** | React-примитивы в `frontend/shared/ui/` (перенос + расширение) |
-| A4   | ⏳ | (Опц.) Перейти `render.ts` на utility-классы вместо рецептов — рецепты уже работают |
-| A5   | ⏳ | Применение в owner: `<Stack>`, `<Field>`, `<Badge>` и т.д. вместо ad-hoc |
-| B1   | ⏳ | Domain `Feature` enum + `Tariff::hasFeature()` + mapper |
-| B2   | ⏳ | `GetOwnerFeaturesHandler` |
-| B3   | ⏳ | `RequireFeature` middleware + `GET /api/owner/features` |
-| B4   | ⏳ | Filament `CheckboxList` вместо `KeyValue` |
-| B5   | ⏳ | Cleanup legacy `features.extra_place_price` |
-| B6   | ⏳ | Frontend `entities/features/` |
-| B7   | ⏳ | Первый реальный gate (`multiple_places`) |
-| B8   | ⏳ | Scan-side фичи (`custom_branding`, `qr_themes`) |
+| A3   | ✅ сделано | React-примитивы в `frontend/shared/ui/`: 7 перенесённых (Button/Card/Input/Skeleton/EmptyState/ConfirmDialog/Sparkline) + 6 новых (Stack/Field/Textarea/Select/Badge/Spinner); shim `owner/src/shared/ui/index.ts` re-export'ит из shared, ESLint запрещает deep-импорты, CI обновлён |
+| A4   | ✅ сделано | `scan/render.ts` перешёл на utility-классы через константы в `scan/styles.ts`; `main.css` оставил только `@layer base` (CSS 10.27 → 12.04 KB — приемлемо) |
+| A5   | ✅ сделано | Применили `<Field>` в ProfileForm/PlaceForm/CodeForm, `<Badge>` в ReviewCard/PaymentsHistory, `<Select>` в PlaceForm, `<Spinner>` в кнопках с `isPending`. CSS 19.16 → 18.97 KB |
+| B1   | ✅ сделано | `Feature` enum (9 cases + label()); `Tariff` расширен `features: list<Feature>` + `hasFeature()`; `TariffMapper::mapFeatures()` глотает legacy assoc/null/unknown |
+| B2   | ✅ сделано | `GetOwnerFeatures{Query,Handler}` — резолвит tariff (bound → default → []) и возвращает `list<Feature>` |
+| B3   | ✅ сделано | `ApiErrorCode::FeatureNotAvailable`, `RequireFeature` middleware (alias `feature:`), `OwnerFeaturesController` + `GET /api/owner/features`, `OwnerFeatureGuardTest` |
+| B4   | ✅ сделано | `TariffForm`: `CheckboxList::make('features')` с options из `Feature::cases()`. `TariffInfolist`: `TextEntry` со списком переведённых лейблов |
+| B5   | ✅ сделано | `TariffSeeder` пишет `[Feature::MultiplePlaces->value]` + `extra_place_price` ушёл в свою колонку; `TariffFactory.features = []`; миграция `2026_05_27_120000_normalize_tariff_features.php` нормализует legacy в БД |
+| B6   | ✅ сделано | `frontend/owner/src/entities/features/`: types, queryKeys, useFeaturesQuery (staleTime 5min), useFeature, FeatureGate, UpsellCard. 50/50 vitest зелёные |
+| B7   | ✅ сделано | `feature:multiple_places` на `POST /api/owner/places` (после `subscription.active:402`); `<FeatureGate>` на кнопку «Добавить точку» в `PlacesListPage` и на `/places/new` (UpsellCard); `RequireSession` параллельно прогревает `useFeaturesQuery` и чистит кэш на логауте |
+| B8   | ✅ сделано | `PublicPlaceView` расширен `tariffFeatures: list<string>` (whitelist: только `custom_branding`/`qr_themes`); `GET /api/public/places/{place}` отдаёт `tariff_features`; shared `ScanFeature` тип; scan-сторона — заглушка, без реального брендинга |
 
 **Артефакты на диске после A1+A2:**
 - `frontend/shared/design-tokens.ts` — типизированные константы (`colors`, `radii`, `shadows`, `motion`, `typography`, `sizes`) + `tokens` + тип `DesignTokens`.
@@ -512,7 +512,21 @@ describe('Field', () => {
 - [ ] CI обновлён: добавлен `typecheck --workspace shared`.
 - [ ] Sync-тест tokens.ts ↔ tokens.css продолжает проходить.
 
-### Фаза A4. CSS-«рецепты» в `frontend/scan/`
+### Фаза A4. Utility-классы в `scan/render.ts` — ✅ СДЕЛАНО
+
+> Артефакты:
+> - `frontend/scan/src/scan/styles.ts` — объект `scanStyles` с константами utility-классов
+>   (DRY: общая база `fieldControl`/`button` факторизована, специализации `primaryButton`/
+>   `platformButton`/`fieldTextarea` через шаблонные литералы).
+> - `frontend/scan/src/scan/render.ts` — все классы импортятся как `scanStyles as s`.
+> - `frontend/scan/src/styles/main.css` — `@layer components` удалён, остался только
+>   `@layer base` (html/body/#app) + `#captcha-container` height-fix.
+> - Pseudo-state'ы: `card--background::before` → `before:content-[''] before:absolute before:inset-0 before:bg-gradient-to-b before:from-black/35 before:to-black/65 [&>*]:relative [&>*]:z-[1]`. Без отдельного CSS-блока.
+> - Disabled-вариант primary-button: `enabled:hover:brightness-105 disabled:opacity-55 disabled:cursor-not-allowed` (Tailwind `enabled:`/`disabled:` варианты вместо `:hover:not(:disabled)`).
+> - Inputs/textareas: `font-sans` вместо `font: inherit` (визуально эквивалентно — body уже `font-sans`).
+> - Bundle: `npm run build --workspace scan` зелёный, CSS 12.04 KB (vs 10.27 KB на @apply-рецептах).
+
+### Фаза A4 (исторический контекст). CSS-«рецепты» в `frontend/scan/`
 
 Так как scan — vanilla, нужны готовые CSS-классы под `@layer components` в
 `frontend/scan/src/styles/main.css`:
@@ -541,7 +555,20 @@ describe('Field', () => {
 **Definition of done:**
 - Локальный smoke-тест: открыть `/s/{slug}/...` страницу, проверить вёрстку.
 
-### Фаза A5. Применение в owner (рефакторинг)
+### Фаза A5. Применение в owner — ✅ СДЕЛАНО
+
+> Артефакты:
+> - `ProfileForm` — 3 тройки `label+Input+error` → `<Field label htmlFor error>`;
+>   `subdomainChanged` warning остался кастомным `<p class="text-warning">` внутри `<Field>` (Field-hint рисует gray ink-500, а нам нужен warning).
+> - `PlaceForm` — 2 поля `Card>label>span+Input` → `<Field>`; vanilla `<select>` → `<Select>` из shared с aria-label'ом; submit + кнопки получают `<Spinner>` рядом с текстом.
+> - `CodeForm` — `<label>+Input+conditional p` → `<Field>` с `error`/`hint` (взаимоисключающие, см. `error: exchange.isError ? ... : undefined, hint: !isError ? ... : undefined`).
+> - `ReviewCard` — `statusToneClass` (record class-string) → `statusTone: Record<status, BadgeTone>` + `<Badge tone>`. Тип `BadgeTone` импортируется из `@/shared/ui`.
+> - `PaymentsHistory` — то же, для `OwnerPayment['status']`.
+> - `TelegramCodeCard`, `ExtendSubscriptionButton`, `ProfileForm`, `PlaceForm`, `CodeForm` — `<Spinner size="sm" />` показывается рядом с pending-надписью (использует `gap-2` базовой `Button`).
+>
+> Lint/typecheck/test (47/47) — зелёные. CSS bundle owner: 19.16 → 18.97 KB.
+
+### Фаза A5 (исторический контекст). Применение в owner (рефакторинг)
 
 После A1–A4 пройтись по существующим компонентам owner и:
 - Заменить копипаст-`space-y-*`/`flex gap-*` на `<Stack>`.

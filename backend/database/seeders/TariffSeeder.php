@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Domain\Iam\Feature;
 use App\Models\Tariff;
 use Illuminate\Database\Seeder;
 
@@ -13,11 +14,10 @@ class TariffSeeder extends Seeder
             ['title' => 'MVP'],
             [
                 'price' => config('guardreviews.subscription.base_price'),
+                'extra_place_price' => config('guardreviews.subscription.extra_place_price'),
                 'duration_days' => config('guardreviews.subscription.duration_days'),
                 'places_limit' => 1,
-                'features' => [
-                    'extra_place_price' => config('guardreviews.subscription.extra_place_price'),
-                ],
+                'features' => [Feature::MultiplePlaces->value],
                 'is_active' => true,
                 'is_default' => true,
             ],

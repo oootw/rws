@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { Button, Card } from '@/shared/ui';
+import { Button, Card, Spinner } from '@/shared/ui';
 
 import { useIssueTelegramCodeMutation } from '../api/useIssueTelegramCodeMutation';
 import type { IssuedTelegramCode } from '../api/useIssueTelegramCodeMutation';
@@ -43,6 +43,7 @@ export function TelegramCodeCard({ isConnected }: TelegramCodeCardProps) {
         }
         disabled={mutation.isPending}
       >
+        {mutation.isPending && <Spinner size="sm" />}
         {mutation.isPending ? 'Запрашиваем…' : 'Получить код'}
       </Button>
 

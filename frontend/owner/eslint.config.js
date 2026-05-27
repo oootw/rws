@@ -91,11 +91,18 @@ export default tseslint.config(
                 'Direct axios import is forbidden outside shared/api. Use shared/api/httpClient or a React Query hook.',
             },
           ],
-          patterns: deepImportPatterns.map((pattern) => ({
-            group: [pattern],
-            message:
-              'Import slice content only through its public index.ts (e.g. @/entities/session).',
-          })),
+          patterns: [
+            ...deepImportPatterns.map((pattern) => ({
+              group: [pattern],
+              message:
+                'Import slice content only through its public index.ts (e.g. @/entities/session).',
+            })),
+            {
+              group: ['@guard-reviews/shared/ui/*'],
+              message:
+                'Import primitives from @guard-reviews/shared/ui (no deep paths).',
+            },
+          ],
         },
       ],
 

@@ -28,6 +28,7 @@ final class PlaceController extends Controller
                 'subscription_active' => true,
                 'captcha_client_key' => config('guardreviews.captcha.client_key'),
                 'privacy_url' => url('/privacy'),
+                'tariff_features' => $view->tariffFeatures,
             ],
         ]);
     }

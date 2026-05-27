@@ -3,7 +3,7 @@ import type { FormEvent } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 
 import type { PlaceInput, PlacePlatform } from '@/entities/place';
-import { Button, Card, Input } from '@/shared/ui';
+import { Button, Card, Field, Input, Select, Spinner } from '@/shared/ui';
 
 type PlaceFormProps = {
   initial?: PlaceInput;
@@ -64,20 +64,20 @@ export function PlaceForm({ initial, submitLabel, isPending, errorMessage, onSub
   return (
     <form onSubmit={submit} className="space-y-4">
       <Card className="space-y-4">
-        <label className="block space-y-1">
-          <span className="text-sm font-medium text-ink-700">Название</span>
+        <Field label="Название" htmlFor="place-title">
           <Input
+            id="place-title"
             value={state.title}
             onChange={(event) => setState((prev) => ({ ...prev, title: event.target.value }))}
             required
             maxLength={255}
             placeholder="Уютное кафе"
           />
-        </label>
+        </Field>
 
-        <label className="block space-y-1">
-          <span className="text-sm font-medium text-ink-700">URL фонового изображения</span>
+        <Field label="URL фонового изображения" htmlFor="place-bg">
           <Input
+            id="place-bg"
             value={state.background_image_url ?? ''}
             onChange={(event) =>
               setState((prev) => ({
@@ -88,7 +88,7 @@ export function PlaceForm({ initial, submitLabel, isPending, errorMessage, onSub
             placeholder="https://… (опционально)"
             type="url"
           />
-        </label>
+        </Field>
       </Card>
 
       <Card className="space-y-4">
@@ -108,9 +108,9 @@ export function PlaceForm({ initial, submitLabel, isPending, errorMessage, onSub
           <div className="space-y-3">
             {state.platforms.map((platform, index) => (
               <div key={index} className="grid gap-2 sm:grid-cols-[140px_1fr_140px_auto]">
-                <select
-                  className="rounded-xl border border-ink-200 bg-surface px-3 py-2 text-sm"
+                <Select
                   value={platform.type}
+                  aria-label="Тип площадки"
                   onChange={(event) =>
                     updatePlatform(index, {
                       type: event.target.value,
@@ -125,18 +125,20 @@ export function PlaceForm({ initial, submitLabel, isPending, errorMessage, onSub
                       {opt.label}
                     </option>
                   ))}
-                </select>
+                </Select>
                 <Input
                   value={platform.url}
                   onChange={(event) => updatePlatform(index, { url: event.target.value })}
                   placeholder="https://…"
                   type="url"
+                  aria-label="URL площадки"
                 />
                 <Input
                   value={platform.label}
                   onChange={(event) => updatePlatform(index, { label: event.target.value })}
                   placeholder="Подпись кнопки"
                   maxLength={120}
+                  aria-label="Подпись кнопки"
                 />
                 <Button
                   type="button"
@@ -161,6 +163,7 @@ export function PlaceForm({ initial, submitLabel, isPending, errorMessage, onSub
 
       <div className="flex justify-end gap-2">
         <Button type="submit" disabled={isPending}>
+          {isPending && <Spinner size="sm" />}
           {isPending ? 'Сохраняем…' : submitLabel}
         </Button>
       </div>

@@ -14,6 +14,7 @@ enum ApiErrorCode: string
     case LoginCodeAlreadyConsumed = 'login_code_already_consumed';
     case SessionTenantMismatch = 'session_tenant_mismatch';
     case OwnerNotLinkedToTelegram = 'owner_not_linked_to_telegram';
+    case FeatureNotAvailable = 'feature_not_available';
 
     public function message(): string
     {
@@ -28,6 +29,7 @@ enum ApiErrorCode: string
             self::LoginCodeAlreadyConsumed => 'Этот код уже использован. Запросите новый через /login в Telegram.',
             self::SessionTenantMismatch => 'Сессия не принадлежит этому кабинету.',
             self::OwnerNotLinkedToTelegram => 'Telegram не привязан. Привяжите аккаунт через бот.',
+            self::FeatureNotAvailable => 'Эта функция недоступна на вашем тарифе.',
         };
     }
 }

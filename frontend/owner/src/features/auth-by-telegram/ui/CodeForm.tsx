@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 
-import { Button, Input } from '@/shared/ui';
+import { Button, Field, Input, Spinner } from '@/shared/ui';
 import { isAxiosError } from '@/shared/api';
 
 import { useExchangeCodeMutation } from '../api/useExchangeCodeMutation';
@@ -51,29 +51,25 @@ export function CodeForm({ initialCode = '', onSuccess }: CodeFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
-      <label htmlFor="login-code" className="text-sm font-medium text-ink-700">
-        Одноразовый код
-      </label>
-      <Input
-        id="login-code"
-        placeholder="123456"
-        inputMode="numeric"
-        autoComplete="one-time-code"
-        maxLength={6}
-        value={code}
-        onChange={(event) => setCode(event.target.value.replace(/\D+/g, ''))}
-        disabled={exchange.isPending}
-      />
-      {exchange.isError ? (
-        <p role="alert" className="text-xs text-danger">
-          {errorMessageFor(exchange.error)}
-        </p>
-      ) : (
-        <p className="text-xs text-ink-400">
-          Получите код по команде /login в Telegram-боте.
-        </p>
-      )}
+      <Field
+        label="Одноразовый код"
+        htmlFor="login-code"
+        error={exchange.isError ? errorMessageFor(exchange.error) : undefined}
+        hint={exchange.isError ? undefined : 'Получите код по команде /login в Telegram-боте.'}
+      >
+        <Input
+          id="login-code"
+          placeholder="123456"
+          inputMode="numeric"
+          autoComplete="one-time-code"
+          maxLength={6}
+          value={code}
+          onChange={(event) => setCode(event.target.value.replace(/\D+/g, ''))}
+          disabled={exchange.isPending}
+        />
+      </Field>
       <Button variant="primary" className="w-full" type="submit" disabled={!isSubmittable}>
+        {exchange.isPending && <Spinner size="sm" />}
         {exchange.isPending ? 'Проверяем…' : 'Войти'}
       </Button>
     </form>

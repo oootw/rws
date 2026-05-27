@@ -4,6 +4,12 @@ export type Platform = {
   label: string;
 };
 
+/**
+ * Scan-side фичи (whitelist на бэке: только `custom_branding`/`qr_themes`).
+ * Owner-only фичи сюда не утекают — backend сам фильтрует.
+ */
+export type ScanFeature = 'custom_branding' | 'qr_themes';
+
 export type PlacePublicResponse = {
   data: {
     id: string;
@@ -13,6 +19,7 @@ export type PlacePublicResponse = {
     subscription_active: boolean;
     captcha_client_key: string | null;
     privacy_url: string;
+    tariff_features: ScanFeature[];
   };
 };
 

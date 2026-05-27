@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\Tariffs\Schemas;
 
-use Filament\Forms\Components\KeyValue;
+use App\Domain\Iam\Feature;
+use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
@@ -66,15 +67,17 @@ final class TariffForm
                         ->default(1),
                 ]),
 
-            Section::make('Дополнительные параметры')
+            Section::make('Возможности тарифа')
                 ->collapsible()
                 ->schema([
-                    KeyValue::make('features')
-                        ->label('Features (свободный JSON)')
-                        ->keyLabel('Ключ')
-                        ->valueLabel('Значение')
-                        ->reorderable()
-                        ->helperText('Например: extra_place_price = 29000'),
+                    CheckboxList::make('features')
+                        ->label('Включённые фичи')
+                        ->options(collect(Feature::cases())
+                            ->mapWithKeys(static fn (Feature $f) => [$f->value => $f->label()])
+                            ->all())
+                        ->columns(2)
+                        ->bulkToggleable()
+                        ->helperText('Снимите/поставьте галки, чтобы поменять доступ.'),
                 ]),
         ]);
     }

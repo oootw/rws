@@ -1,6 +1,7 @@
 import type { PlacePublicResponse } from '@guard-reviews/shared/types';
 import type { Messages } from '../i18n';
 import { escapeAttribute, escapeHtml } from '../lib/escape';
+import { scanStyles as s } from './styles';
 
 export type PlaceData = PlacePublicResponse['data'];
 
@@ -34,7 +35,7 @@ const renderStars = (place: PlaceData, messages: Messages): string => {
     return `
       <button
         type="button"
-        class="star-button"
+        class="${s.starButton}"
         data-star="${value}"
         aria-label="${escapeAttribute(messages.starLabel(value))}"
       >★</button>
@@ -42,9 +43,9 @@ const renderStars = (place: PlaceData, messages: Messages): string => {
   }).join('');
 
   return `
-    <h1 class="title">${escapeHtml(place.title)}</h1>
-    <p class="subtitle">${escapeHtml(messages.rateExperience)}</p>
-    <div class="stars" role="group" aria-label="${escapeAttribute(messages.rateExperience)}">
+    <h1 class="${s.title}">${escapeHtml(place.title)}</h1>
+    <p class="${s.subtitle}">${escapeHtml(messages.rateExperience)}</p>
+    <div class="${s.stars}" role="group" aria-label="${escapeAttribute(messages.rateExperience)}">
       ${stars}
     </div>
   `;
@@ -54,7 +55,7 @@ const renderPlatforms = (place: PlaceData, messages: Messages): string => {
   const buttons = place.platforms
     .map(
       (platform) => `
-        <button type="button" class="platform-button" data-platform="${escapeAttribute(platform.type)}">
+        <button type="button" class="${s.platformButton}" data-platform="${escapeAttribute(platform.type)}">
           ${escapeHtml(platform.label)}
         </button>
       `,
@@ -62,9 +63,9 @@ const renderPlatforms = (place: PlaceData, messages: Messages): string => {
     .join('');
 
   return `
-    <h1 class="title">${escapeHtml(place.title)}</h1>
-    <p class="subtitle">${escapeHtml(messages.choosePlatform)}</p>
-    <div class="platform-list">${buttons}</div>
+    <h1 class="${s.title}">${escapeHtml(place.title)}</h1>
+    <p class="${s.subtitle}">${escapeHtml(messages.choosePlatform)}</p>
+    <div class="${s.platformList}">${buttons}</div>
   `;
 };
 
@@ -74,25 +75,25 @@ const renderNegativeForm = (place: PlaceData, messages: Messages): string => {
     : '';
 
   return `
-    <h1 class="title">${escapeHtml(messages.negativeTitle)}</h1>
+    <h1 class="${s.title}">${escapeHtml(messages.negativeTitle)}</h1>
     <form id="negative-form">
-      <div class="field">
-        <label for="review-text">${escapeHtml(messages.negativeText)}</label>
-        <textarea id="review-text" name="text" required maxlength="5000"></textarea>
+      <div class="${s.field}">
+        <label class="${s.fieldLabel}" for="review-text">${escapeHtml(messages.negativeText)}</label>
+        <textarea id="review-text" name="text" class="${s.fieldTextarea}" required maxlength="5000"></textarea>
       </div>
-      <div class="field">
-        <label for="review-contact">${escapeHtml(messages.contact)}</label>
-        <input id="review-contact" name="contact" type="text" required maxlength="255" autocomplete="tel" />
+      <div class="${s.field}">
+        <label class="${s.fieldLabel}" for="review-contact">${escapeHtml(messages.contact)}</label>
+        <input id="review-contact" name="contact" class="${s.fieldInput}" type="text" required maxlength="255" autocomplete="tel" />
       </div>
-      <label class="consent">
+      <label class="${s.consent}">
         <input type="checkbox" name="consent" required />
         <span>
           ${escapeHtml(messages.consent)}
-          (<a href="${escapeAttribute(place.privacy_url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(messages.privacy)}</a>)
+          (<a href="${escapeAttribute(place.privacy_url)}" class="${s.consentLink}" target="_blank" rel="noopener noreferrer">${escapeHtml(messages.privacy)}</a>)
         </span>
       </label>
       ${captchaBlock}
-      <button type="submit" class="primary-button">${escapeHtml(messages.submit)}</button>
+      <button type="submit" class="${s.primaryButton}">${escapeHtml(messages.submit)}</button>
     </form>
   `;
 };
@@ -112,10 +113,10 @@ const renderScreenContent = (
     stars: () => renderStars(place, messages),
     platforms: () => renderPlatforms(place, messages),
     negative: () => renderNegativeForm(place, messages),
-    thanks: () => `<p class="message">${escapeHtml(messages.thanks)}</p>`,
-    'thanks-redirect': () => `<p class="message">${escapeHtml(messages.thanksRedirect)}</p>`,
-    expired: () => `<p class="message">${escapeHtml(messages.errorExpired)}</p>`,
-    error: () => `<p class="message">${escapeHtml(errorMessage ?? messages.errorGeneric)}</p>`,
+    thanks: () => `<p class="${s.message}">${escapeHtml(messages.thanks)}</p>`,
+    'thanks-redirect': () => `<p class="${s.message}">${escapeHtml(messages.thanksRedirect)}</p>`,
+    expired: () => `<p class="${s.message}">${escapeHtml(messages.errorExpired)}</p>`,
+    error: () => `<p class="${s.message}">${escapeHtml(errorMessage ?? messages.errorGeneric)}</p>`,
   };
 
   return screens[screen]();
@@ -132,13 +133,15 @@ export const renderScanPage = (
     return '';
   }
 
-  const cardClass = place.background_image_url ? 'card card--background' : 'card';
+  const cardClass = place.background_image_url
+    ? `${s.card} ${s.cardBackground}`
+    : s.card;
   const style = place.background_image_url
     ? ` style="background-image:url('${escapeAttribute(place.background_image_url)}')"`
     : '';
 
   return `
-    <div class="page">
+    <div class="${s.page}">
       <section class="${cardClass}"${style}>
         ${renderScreenContent(state, messages, errorMessage)}
       </section>
@@ -147,9 +150,9 @@ export const renderScanPage = (
 };
 
 export const renderMessagePage = (message: string): string => `
-  <div class="page">
-    <section class="card">
-      <p class="message">${escapeHtml(message)}</p>
+  <div class="${s.page}">
+    <section class="${s.card}">
+      <p class="${s.message}">${escapeHtml(message)}</p>
     </section>
   </div>
 `;

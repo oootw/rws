@@ -4,15 +4,16 @@ import { Banknote } from 'lucide-react';
 import { useOwnerPaymentsQuery, paymentStatusLabel } from '@/entities/payment';
 import type { OwnerPayment } from '@/entities/payment';
 import { formatRubles } from '@/entities/subscription';
-import { Button, Card, EmptyState, Skeleton } from '@/shared/ui';
+import { Badge, Button, Card, EmptyState, Skeleton } from '@/shared/ui';
+import type { BadgeTone } from '@/shared/ui';
 
 const PER_PAGE = 10;
 
-const statusToneClass: Record<OwnerPayment['status'], string> = {
-  pending: 'bg-warning/15 text-warning',
-  success: 'bg-accent-soft text-accent',
-  failed: 'bg-danger/10 text-danger',
-  refunded: 'bg-ink-100 text-ink-500',
+const statusTone: Record<OwnerPayment['status'], BadgeTone> = {
+  pending: 'warning',
+  success: 'accent',
+  failed: 'danger',
+  refunded: 'neutral',
 };
 
 const formatter = new Intl.DateTimeFormat('ru-RU', {
@@ -69,14 +70,9 @@ export function PaymentsHistory() {
                 {payment.tariff_title ?? 'Тариф'} · {formatCreatedAt(payment.created_at)}
               </p>
             </div>
-            <span
-              className={[
-                'rounded-full px-2.5 py-0.5 text-xs font-medium',
-                statusToneClass[payment.status],
-              ].join(' ')}
-            >
+            <Badge tone={statusTone[payment.status]}>
               {paymentStatusLabel(payment.status)}
-            </span>
+            </Badge>
           </li>
         ))}
       </ul>

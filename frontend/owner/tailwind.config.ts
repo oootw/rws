@@ -7,7 +7,11 @@ import { preset } from '@guard-reviews/shared/tailwind';
  * (`frontend/shared/design-tokens.ts`). Здесь — только глобы под content.
  */
 const config: Config = {
-  content: ['./index.html', './src/**/*.{ts,tsx}'],
+  content: [
+    './index.html',
+    './src/**/*.{ts,tsx}',
+    '../shared/ui/**/*.{ts,tsx}',
+  ],
   presets: [preset as Config],
 };
 

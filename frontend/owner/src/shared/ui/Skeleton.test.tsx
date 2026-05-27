@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { render } from '@testing-library/react';
 
-import { Skeleton, SkeletonText } from './Skeleton';
+import { Skeleton, SkeletonText } from '@guard-reviews/shared/ui';
 
 describe('Skeleton', () => {
   it('рендерит aria-hidden плейсхолдер с pulse-классом', () => {

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\Tariffs\Schemas;
 
+use App\Domain\Iam\Feature;
 use Filament\Infolists\Components\IconEntry;
-use Filament\Infolists\Components\KeyValueEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
@@ -31,12 +31,16 @@ final class TariffInfolist
                     TextEntry::make('places_limit')->label('Лимит точек'),
                 ]),
 
-            Section::make('Features')
+            Section::make('Возможности тарифа')
                 ->schema([
-                    KeyValueEntry::make('features')
+                    TextEntry::make('features')
                         ->label('')
                         ->hiddenLabel()
-                        ->placeholder('—'),
+                        ->placeholder('—')
+                        ->listWithLineBreaks()
+                        ->formatStateUsing(static fn (?string $state): string => $state === null
+                            ? '—'
+                            : (Feature::tryFrom($state)?->label() ?? $state)),
                 ]),
 
             Section::make('Системное')

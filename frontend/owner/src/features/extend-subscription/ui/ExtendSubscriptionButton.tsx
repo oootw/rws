@@ -1,4 +1,4 @@
-import { Button } from '@/shared/ui';
+import { Button, Spinner } from '@/shared/ui';
 
 import { useInitPaymentMutation } from '../api/useInitPaymentMutation';
 
@@ -19,6 +19,7 @@ export function ExtendSubscriptionButton({ amountLabel }: ExtendSubscriptionButt
         disabled={mutation.isPending}
         aria-label="Продлить подписку"
       >
+        {mutation.isPending && <Spinner size="sm" />}
         {mutation.isPending ? 'Перенаправляем…' : `Оплатить ${amountLabel}`}
       </Button>
       {errorMessage !== null && (

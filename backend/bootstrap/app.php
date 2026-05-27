@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\EnsureSessionMatchesTenant;
 use App\Http\Middleware\EnsureSubscriptionActive;
+use App\Http\Middleware\RequireFeature;
 use App\Http\Middleware\ResolvePublicPlace;
 use App\Http\Middleware\ResolveTenantBySubdomain;
 use Illuminate\Foundation\Application;
@@ -25,6 +26,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'tenant-owns-session' => EnsureSessionMatchesTenant::class,
             'subscription.active' => EnsureSubscriptionActive::class,
             'resolve.public.place' => ResolvePublicPlace::class,
+            'feature' => RequireFeature::class,
         ]);
 
         // Доверяем X-Forwarded-* от reverse-proxy (Caddy/Traefik) внутри Docker-сети.
