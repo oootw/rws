@@ -4,6 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "exports": {
-    "./types": "./types/api.ts"
+    "./types": "./types/api.ts",
+    "./design-tokens": "./design-tokens.ts",
+    "./tailwind": "./tailwind/preset.ts",
+    "./styles/tokens.css": "./styles/tokens.css"
   }
 }

@@ -20,5 +20,6 @@ final readonly class Tariff
         public int $basePrice = 0,
         public int $extraPlacePrice = 0,
         public bool $isDefault = false,
+        public ?int $placesLimit = null,
     ) {}
 }

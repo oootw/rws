@@ -18,6 +18,7 @@ final class TariffMapper
             basePrice: (int) $model->price,
             extraPlacePrice: (int) $model->extra_place_price,
             isDefault: (bool) $model->is_default,
+            placesLimit: $model->places_limit === null ? null : (int) $model->places_limit,
         );
     }
 }

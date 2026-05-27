@@ -1,8 +1,10 @@
 import { Link } from 'react-router-dom';
-import { Plus } from 'lucide-react';
+import { MapPin, Plus } from 'lucide-react';
 
 import { PlaceCard, useOwnerPlacesQuery } from '@/entities/place';
-import { Card } from '@/shared/ui';
+import { Card, EmptyState, Skeleton } from '@/shared/ui';
+
+const SKELETON_TILES = 4;
 
 export function PlacesListPage() {
   const places = useOwnerPlacesQuery();
@@ -23,12 +25,24 @@ export function PlacesListPage() {
         </Link>
       </header>
 
-      {places.isPending && <Card className="text-sm text-ink-500">Загружаем точки…</Card>}
+      {places.isPending && (
+        <div className="grid gap-3 sm:grid-cols-2" aria-busy="true" aria-live="polite">
+          {Array.from({ length: SKELETON_TILES }).map((_, index) => (
+            <Card key={index} className="space-y-3">
+              <Skeleton className="h-5 w-1/2" />
+              <Skeleton className="h-4 w-3/4" />
+              <Skeleton className="h-4 w-1/3" />
+            </Card>
+          ))}
+        </div>
+      )}
 
       {places.data !== undefined && places.data.length === 0 && (
-        <Card className="text-sm text-ink-500">
-          У вас пока нет точек. Нажмите «Добавить точку» или используйте команду /addplace в Telegram-боте.
-        </Card>
+        <EmptyState
+          icon={<MapPin className="h-8 w-8" />}
+          title="Пока нет точек"
+          description="Нажмите «Добавить точку» или используйте команду /addplace в Telegram-боте."
+        />
       )}
 
       {places.data !== undefined && places.data.length > 0 && (

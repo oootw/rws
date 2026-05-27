@@ -1,177 +1,158 @@
-:root {
-  color-scheme: light;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  line-height: 1.5;
-  color: #111;
-  background: #f6f6f8;
+@import '@guard-reviews/shared/styles/tokens.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/**
+ * Scan-страница рисуется vanilla TS из render.ts (HTML-строки).
+ * Поэтому брендовые классы держим как «рецепты» в @layer components:
+ * render.ts остаётся без изменений, бренд приходит из shared токенов.
+ */
+
+@layer base {
+  html {
+    color-scheme: light;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    @apply min-h-screen bg-canvas text-ink-900 font-sans;
+    line-height: 1.5;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right)
+      env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+
+  #app {
+    min-height: 100dvh;
+  }
 }
 
-* {
-  box-sizing: border-box;
-}
+@layer components {
+  /* --- Layout --- */
+  .page {
+    @apply min-h-screen flex items-center justify-center p-6;
+  }
 
-body {
-  margin: 0;
-  min-height: 100dvh;
-}
+  .card {
+    @apply w-full max-w-[420px] bg-surface rounded-3xl p-7 shadow-soft;
+  }
 
-#app {
-  min-height: 100dvh;
-}
+  .card--background {
+    @apply text-surface relative overflow-hidden;
+    background-size: cover;
+    background-position: center;
+  }
 
-.page {
-  min-height: 100dvh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 1.5rem;
-}
+  .card--background::before {
+    content: '';
+    @apply absolute inset-0;
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.65));
+  }
 
-.card {
-  width: min(100%, 420px);
-  background: #fff;
-  border-radius: 20px;
-  padding: 1.75rem 1.5rem;
-  box-shadow: 0 12px 40px rgba(17, 17, 17, 0.08);
-}
+  .card--background > * {
+    @apply relative z-[1];
+  }
 
-.card--background {
-  background-size: cover;
-  background-position: center;
-  color: #fff;
-  position: relative;
-  overflow: hidden;
-}
+  /* --- Текст --- */
+  .title {
+    @apply m-0 mb-2 text-2xl font-bold text-center;
+  }
 
-.card--background::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.65));
-}
+  .subtitle {
+    @apply m-0 mb-6 text-center opacity-85;
+  }
 
-.card--background > * {
-  position: relative;
-  z-index: 1;
-}
+  .message {
+    @apply m-0 text-center;
+  }
 
-.title {
-  margin: 0 0 0.5rem;
-  font-size: 1.5rem;
-  font-weight: 700;
-  text-align: center;
-}
+  .privacy-link {
+    @apply block mt-4 text-center text-xs opacity-75;
+  }
 
-.subtitle {
-  margin: 0 0 1.5rem;
-  text-align: center;
-  opacity: 0.85;
-}
+  /* --- Звёзды --- */
+  .stars {
+    @apply flex justify-center gap-2 mt-4;
+  }
 
-.stars {
-  display: flex;
-  justify-content: center;
-  gap: 0.5rem;
-  margin: 1rem 0 0;
-}
+  .star-button {
+    @apply appearance-none border-0 bg-transparent text-3xl leading-none
+           cursor-pointer p-1 text-warning;
+    transition: transform var(--motion-fast);
+  }
 
-.star-button {
-  appearance: none;
-  border: 0;
-  background: transparent;
-  font-size: 2rem;
-  line-height: 1;
-  cursor: pointer;
-  padding: 0.25rem;
-  transition: transform 0.15s ease;
-}
+  .star-button:hover,
+  .star-button:focus-visible {
+    @apply scale-110;
+  }
 
-.star-button:hover,
-.star-button:focus-visible {
-  transform: scale(1.08);
-}
+  /* --- Кнопки --- */
+  .platform-list {
+    @apply grid gap-3;
+  }
 
-.platform-list {
-  display: grid;
-  gap: 0.75rem;
-}
+  .platform-button,
+  .primary-button {
+    @apply appearance-none w-full border-0 rounded-xl px-4 py-3.5
+           text-base font-semibold cursor-pointer;
+    transition: filter var(--motion-fast);
+  }
 
-.platform-button,
-.primary-button {
-  appearance: none;
-  width: 100%;
-  border: 0;
-  border-radius: 12px;
-  padding: 0.95rem 1rem;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-}
+  .platform-button {
+    @apply bg-ink-100 text-ink-900;
+  }
 
-.platform-button {
-  background: #eef0f4;
-  color: #111;
-}
+  .platform-button:hover {
+    @apply bg-ink-200;
+  }
 
-.primary-button {
-  background: #111;
-  color: #fff;
-}
+  .primary-button {
+    @apply bg-accent text-accent-fg;
+  }
 
-.primary-button:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
+  .primary-button:hover:not(:disabled) {
+    filter: brightness(1.05);
+  }
 
-.field {
-  display: grid;
-  gap: 0.4rem;
-  margin-bottom: 1rem;
-}
+  .primary-button:disabled {
+    @apply opacity-55 cursor-not-allowed;
+  }
 
-.field label {
-  font-size: 0.9rem;
-  font-weight: 600;
-}
+  /* --- Поля формы --- */
+  .field {
+    @apply grid gap-1.5 mb-4;
+  }
 
-.field input,
-.field textarea {
-  width: 100%;
-  border: 1px solid #d7dbe3;
-  border-radius: 12px;
-  padding: 0.85rem 0.95rem;
-  font: inherit;
-  background: #fff;
-}
+  .field label {
+    @apply text-sm font-semibold;
+  }
 
-.field textarea {
-  min-height: 120px;
-  resize: vertical;
-}
+  .field input,
+  .field textarea {
+    @apply w-full bg-surface text-ink-900 border border-ink-200
+           rounded-xl px-4 py-3 text-base;
+    font: inherit;
+  }
 
-.consent {
-  display: flex;
-  gap: 0.65rem;
-  align-items: flex-start;
-  margin-bottom: 1rem;
-  font-size: 0.875rem;
-}
+  .field input:focus,
+  .field textarea:focus {
+    @apply outline-none border-accent ring-4 ring-accent/15;
+  }
 
-.consent a {
-  color: inherit;
-}
+  .field textarea {
+    @apply min-h-[120px] resize-y;
+  }
 
-.message {
-  text-align: center;
-  margin: 0;
-}
+  .consent {
+    @apply flex gap-2.5 items-start mb-4 text-sm;
+  }
 
-.privacy-link {
-  display: block;
-  margin-top: 1rem;
-  text-align: center;
-  font-size: 0.8rem;
-  opacity: 0.75;
+  .consent a {
+    @apply text-inherit underline;
+  }
 }
 
 #captcha-container {

@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { Star } from 'lucide-react';
 
 import { Card } from '@/shared/ui';
@@ -8,6 +9,7 @@ import type { Review } from '../model/types';
 
 type ReviewCardProps = {
   review: Review;
+  statusSlot?: ReactNode;
 };
 
 const statusToneClass: Record<Review['status'], string> = {
@@ -17,7 +19,7 @@ const statusToneClass: Record<Review['status'], string> = {
   archived: 'bg-ink-100 text-ink-500',
 };
 
-export function ReviewCard({ review }: ReviewCardProps) {
+export function ReviewCard({ review, statusSlot }: ReviewCardProps) {
   return (
     <Card as="article" className="space-y-3">
       <header className="flex flex-wrap items-center justify-between gap-2">
@@ -29,14 +31,16 @@ export function ReviewCard({ review }: ReviewCardProps) {
           </span>
           <span className="text-sm font-semibold">{review.place_title}</span>
         </div>
-        <span
-          className={[
-            'rounded-full px-2.5 py-0.5 text-xs font-medium',
-            statusToneClass[review.status],
-          ].join(' ')}
-        >
-          {statusLabel(review.status)}
-        </span>
+        {statusSlot ?? (
+          <span
+            className={[
+              'rounded-full px-2.5 py-0.5 text-xs font-medium',
+              statusToneClass[review.status],
+            ].join(' ')}
+          >
+            {statusLabel(review.status)}
+          </span>
+        )}
       </header>
 
       {review.text ? (

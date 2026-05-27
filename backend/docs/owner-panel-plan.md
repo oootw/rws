@@ -21,8 +21,11 @@ mobile-first. Полностью адаптирован под телефоны 
 | 1 | ✅ сделано | Auth через Telegram magic-code: domain `OwnerLoginRequest`, handlers `RequestOwnerLogin`/`ExchangeOwnerLoginCode`, миграция `owner_login_requests`, команда `/login`, HTTP `/auth/exchange`+`/auth/logout`+`/me`, middleware `EnsureSessionMatchesTenant`, frontend `entities/session` + `features/auth-by-telegram` + `RequireSession` guard. Тесты: 7 domain, 6 application, 7 feature, 4 frontend. |
 | 2 | ✅ сделано | Dashboard + просмотр: `OwnerDashboardReader` (KPI 7d + daily series), `OwnerReviewsReader` (фильтры status/place/date + пагинация), HTTP `/dashboard`/`/places`/`/places/{id}`/`/reviews`, frontend `entities/{place,review,analytics}` + widgets `kpi-cards`/`reviews-table` + страницы dashboard/places-list/place-detail/reviews-list. Тесты: 13 feature, 7 frontend. |
 | 3 | ✅ сделано | Управление точками + per-place ценообразование: `tariffs.extra_place_price` (kopecks) редактируется в Filament, `Tariff` VO с basePrice/extraPlacePrice, `CalculateSubscriptionAmount` берёт из тарифа owner'а (fallback на env), новый `CalculatePlaceCharge` (pro-rata за оставшиеся дни + `monthly_delta` для предупреждения о след. месяце). HTTP `POST/PATCH/DELETE /places`, `POST /places/{id}/toggle`, `GET /places/charge-preview` с ownership-guards через `GetPlaceForOwner`. Frontend `features/{create-place,update-place,toggle-place-activation,delete-place}` + `widgets/place-form` + страницы place-create/place-edit + `ChargePreviewBanner`. Тесты: 5 unit, 9 feature CRUD, 3 frontend banner. |
-| **4** | 🟡 **следующая** | Управление отзывами (смена статуса) |
-| 5–8 | ⏳ запланировано | см. ниже |
+| 4 | ✅ сделано | Управление отзывами (смена статуса): `PATCH /api/owner/reviews/{id}/status` через существующий `ChangeReviewStatusHandler` (owner-check встроен), `ApiErrorCode::ReviewNotFound`. Frontend `features/change-review-status` (mutation с optimistic update в `reviewsQueryKeys.all` + откат на ошибке, `StatusSwitcher` dropdown). Интегрирован в `widgets/reviews-table` через `ReviewCard.statusSlot` (entity остаётся независимым). Тесты: 5 feature, 3 frontend. |
+| 5 | ✅ сделано | Подписка и оплата: `GET /api/owner/subscription` (`GetOwnerSubscriptionHandler` — tariff/endsAt/daysLeft/isActive/placesUsed/placesLimit/nextChargeAmount; `Tariff` VO расширен `placesLimit`), `POST /api/owner/subscription/init-payment` через существующий `InitSubscriptionPaymentHandler` (422 при отказе эквайера), `GET /api/owner/payments` через новый `OwnerPaymentsReader` (paginated, изоляция по `user_id`). Frontend `entities/{subscription,payment}` (хуки + queryKeys + lib), `features/extend-subscription` (`useInitPaymentMutation` → редирект на payment_url), `widgets/{subscription-card,payments-history}`, `pages/subscription`. Тесты: 7 feature, 3 frontend. |
+| 6 | ✅ сделано | Профиль и настройки: `PATCH /api/owner/profile` (name/email/subdomain через существующий `UpdateOwnerProfileHandler`, telegram_id/tariff_id сохраняются неизменными), `POST /api/owner/profile/telegram/issue-code` (выдаёт fresh magic-код через `RequestOwnerLoginHandler` для текущего привязанного Telegram, throttle 5/min). `ApiErrorCode::OwnerNotLinkedToTelegram`. Frontend `features/{update-profile,issue-telegram-code}`, `pages/profile` с секциями «Основные данные» и «Telegram». Field-уровневые 422-ошибки через FP-only `ProfileValidationError` (Error + name-тег, без класса). Optimistic cache `sessionQueryKeys.me()` после save. Предупреждение о смене поддомена. Тесты: 7 feature, 6 frontend. |
+| 7 | ✅ сделано | UX-полировка + edge: `EnsureSubscriptionActive` расширен параметром `:402` (DRY — один middleware для public scan API с 403 и owner-панели с 402), применён к платным мутациям (`POST/PATCH/DELETE /places`, `PATCH /reviews/{id}/status`). Read/profile/payment/auth остаются доступны при истёкшей подписке. Frontend: `shared/ui/{Skeleton,SkeletonText,EmptyState}` примитивы (FP-only), применены в `KpiCards/ReviewsTable/PaymentsHistory/PlacesListPage/SubscriptionPage/ProfilePage`; глобальный axios-interceptor на 402 → `window.location.assign('/owner/subscription')` (если ещё не там). Тесты: 7 feature (cross-tenant 403, 402 на мутациях, read/init-payment/profile доступны при истёкшей), 6 frontend (Skeleton + interceptor). |
+| 8 | ✅ сделано | CI/Docker/документация: GHA workflow (`.github/workflows/ci.yml`) с backend job (PHP 8.4 + PostgreSQL 16 + Redis 7 → pint + pest) и frontend-owner job (Node 22 → lint + typecheck + vitest + build). **Docker fix:** multi-stage build в `docker/php/Dockerfile` (node 22 stage `owner-frontend` собирает SPA, копируется в `/var/www/dist/owner` рядом с backend — иначе `OwnerSpaController` в проде не находил bundle). `docker/nginx/Dockerfile` тоже копирует `/dist/owner` в `/var/www/frontend/owner`. `nginx/default.conf`: `location ^~ /owner/` отдаёт статику (assets с `immutable` 30d cache), всё прочее под `/owner/` идёт в Laravel для tenant-резолва. PWA runtime cache: `NetworkFirst` для `/api/owner/me` и `/api/owner/dashboard`. Финальный гайд `backend/docs/owner-panel.md` (10 секций). **Все фазы Owner-панели завершены.** |
 
 ### Что уже сделано в Фазе 0
 
@@ -53,29 +56,148 @@ mobile-first. Полностью адаптирован под телефоны 
   - Без собранного бандла → 404 с понятным сообщением.
   - `/api/owner/me` без сессии → 401.
 
-### Куда смотреть в Фазе 0.5 (миграция в FSD) — **сделать первой**
+### Handoff для следующей сессии (все 8 фаз сделаны)
 
-1. Настроить ESLint: `eslint-plugin-boundaries` + `no-restricted-syntax` (запрет `class`)
-   + `no-restricted-imports` (запрет `axios`/`fetch` вне `shared/api/` и `<slice>/api/`).
-   См. §§ 1.5, 1.6.
-2. Перенести существующие файлы по таблице в § 1.6.
-3. Завести `index.ts` в каждом созданном слайсе.
-4. Вынести `.card-padded` / `.btn-primary` из CSS-слоёв в `shared/ui/` как
-   `<Card>`/`<Button>` компоненты.
-5. Заменить module-level `let csrfFetched` в `shared/api/httpClient.ts` на
-   мемоизированный once-closure.
+> **Owner-панель доведена до релиза.** Для расширения и поддержки — см.
+> **`backend/docs/owner-panel.md`** (финальный гайд: API карта, файловая
+> структура, чек-лист «как добавить мутацию X»). Этот документ
+> (`owner-panel-plan.md`) — исторический лог по фазам, читать только если
+> нужно понять «как пришли», а не «как сейчас».
+>
+> **Что осталось вне scope (низкий приоритет, можно делать по запросу):**
+> - `shared/ui/BottomSheet` + миграция `change-review-status`/`delete-place`.
+> - Empty-state SVG-иллюстрации (сейчас лишь lucide-иконки).
+> - Framer Motion page-transitions.
+> - Уведомление owner'у о скором истечении подписки за 3 дня — нужен
+>   тест-прогон `RemindAboutSubscriptionExpiry` end-to-end на staging.
 
-### Куда смотреть в Фазе 1 (после Фазы 0.5)
+---
 
-1. Telegram bot — добавить команду `/login` в `app/Interface/TelegramBot/Commands/`.
-2. Domain `OwnerLoginRequest` — новый агрегат в `app/Domain/Iam/`.
-3. Application `RequestOwnerLogin` / `ExchangeOwnerLoginCode` — два use case'а в `app/Application/Iam/`.
-4. Frontend (уже в FSD после 0.5):
-   - `entities/session/api/useSessionQuery.ts` — GET /api/owner/me через React Query.
-   - `features/auth-by-telegram/api/useExchangeCodeMutation.ts` — обмен code на сессию.
-   - `pages/login/ui/LoginPage.tsx` — композит kvell-карточки + `features/auth-by-telegram` блоков.
-   - `app/router/guards/RequireSession.tsx` — guard через `useSessionQuery`, **не** через прямой fetch.
-5. Tenant-cross-check middleware (`EnsureSessionMatchesTenant`) подключить к группе `/api/owner/*`.
+### Историческая шпаргалка (как запускать / куда смотреть)
+
+Документ-шпаргалка для холодного старта. Не перечитывая остальную часть плана,
+здесь — состояние «как сейчас» и точки входа для Фазы 6.
+
+**Запуск тестов:**
+```bash
+# Frontend (16 тестов, должно быть зелено)
+cd frontend && npm i  # один раз
+cd frontend/owner && npm run test && npm run lint && npm run typecheck
+
+# Backend (PHP 8.4 — только в Docker; локальный 8.2 не подойдёт)
+cd /Users/rasa/dev/rws && docker run --rm -v "$(pwd)/backend:/app" -w /app \
+  php:8.4-cli-alpine sh -c "apk add --no-cache icu-libs icu-dev libzip-dev zip >/dev/null 2>&1 \
+  && docker-php-ext-install intl pdo_pgsql >/dev/null 2>&1 \
+  && php artisan test tests/Feature/Owner tests/Unit/Application 2>&1"
+
+# Pint можно с хоста (без Docker)
+cd backend && ./vendor/bin/pint app/Interface app/Application app/Domain tests/Feature/Owner
+```
+
+**Текущая карта `/api/owner/*` (см. `routes/api.php`):**
+- Auth: `POST /auth/exchange` (throttle 10/min, без auth), `POST /auth/logout`, `GET /me`.
+- Dashboard: `GET /dashboard`.
+- Places: `GET /places`, `POST /places`, `GET /places/{id}`, `PATCH /places/{id}`,
+  `POST /places/{id}/toggle`, `DELETE /places/{id}`, `GET /places/charge-preview`.
+- Reviews: `GET /reviews`, `PATCH /reviews/{id}/status`.
+- Subscription: `GET /subscription`, `POST /subscription/init-payment`, `GET /payments`.
+- Profile: `PATCH /profile`, `POST /profile/telegram/issue-code` (throttle 5/min).
+
+Вся группа под `tenant + tenant-owns-session`. Мутации — под `auth:owner`.
+Тесты — `tests/Feature/Owner/*.php`. Эталон-helper'ы: `tenantHeaders($user)`,
+`loginAsOwner($user)` (см. `tests/Pest.php`, `tests/Helpers/iamLogin.php`).
+
+**Frontend FSD-карта (`frontend/owner/src/`):**
+```
+app/router         — AppRouter + RequireSession (cookie-сессия)
+pages/             — dashboard, places-list, place-{create,edit,detail},
+                     reviews-list, subscription, login, not-found, placeholder
+widgets/           — app-shell, auth-shell, kpi-cards, place-form,
+                     reviews-table, subscription-card, payments-history
+features/          — auth-by-telegram, create-place, update-place,
+                     toggle-place-activation, delete-place,
+                     change-review-status, extend-subscription,
+                     update-profile, issue-telegram-code
+entities/          — session, place, review, analytics, subscription, payment
+shared/            — api/httpClient (axios+ensureCsrf), ui (Button/Card/Input/...)
+```
+
+ESLint boundaries и no-class-rule включены; импорты строго через
+`@/<layer>/<slice>` (public API). Любой сетевой вызов — только через React Query
+hook в `<slice>/api/`. CSRF — через `ensureCsrf()` перед мутацией.
+
+**Что переиспользовать в Фазе 8 (CI/документация/релиз):**
+1. **CI:**
+   - Backend: `composer test` должен зеленеть на full test suite. Добавить в GHA workflow
+     `tests/Feature/Owner/*` + `tests/Unit/Application/{Iam,Payments,Places,Reviews}/*` + pint.
+   - Frontend: `npm run test --workspace owner` + `npm run lint --workspace owner` +
+     `npm run typecheck --workspace owner`. Plus build (`npm run build:owner`).
+2. **Docker:**
+   - Multi-stage build для `frontend/owner` → бэк отдаёт `dist/owner/index.html`.
+   - Caddy reverse-proxy: `try_files /owner/index.html` для SPA-fallback на любом
+     `{slug}.otziv.space/owner/*`.
+3. **Документация (owner-facing):**
+   - `backend/docs/owner-panel.md` — как добавить страницу/endpoint, как привязать
+     к существующему use case. Шпаргалка для команды.
+   - Обновить top-level `README.md`/`backend/README.md` про новую панель.
+4. **Bottom-sheets (отложено из Ф.7):** `shared/ui/BottomSheet` для мобилы; применить в
+   `features/change-review-status` (вместо dropdown) и `features/delete-place` (confirm).
+5. **PWA runtime cache:** уже базово настроен; уточнить `network-first` для
+   `/api/owner/me` и `/api/owner/dashboard` в vite-plugin-pwa `runtimeCaching`.
+   A2HS-banner на 3-й заход (через `shared/lib/visitCounter.ts` в localStorage).
+6. **Empty-state иллюстрации:** заменить простые иконки на SVG из undraw.co
+   (перекрасить в `accent`). Опционально, низкий приоритет.
+7. **Framer Motion (опционально):** page-transitions через `AnimatePresence`.
+8. **Подписка-уведомления:** уведомление о скором истечении подписки за 3 дня
+   (уже есть `RemindAboutSubscriptionExpiry` use case + cron). Проверить, что
+   доставляется через `MultiChannelOwnerNotifier` корректно.
+
+**Полезные эталоны (по чему писать):**
+
+| Делаю...                          | Смотри...                                                                            |
+|-----------------------------------|--------------------------------------------------------------------------------------|
+| Новый Owner-endpoint              | `OwnerSubscriptionController` (тонкий, через handler/reader, `ApiResponse::error`)   |
+| FormRequest + toCommand           | `ChangeReviewStatusRequest`, `SavePlaceRequest`                                      |
+| React Query mutation + optimistic | `features/change-review-status/api/useChangeReviewStatusMutation.ts` (snapshots + rollback) |
+| Mutation + редирект               | `features/extend-subscription/api/useInitPaymentMutation.ts`                         |
+| Mutation + 422 field-errors       | `features/update-profile/api/useUpdateProfileMutation.ts` (`isProfileValidationError`, без класса) |
+| Widget-композит из entity+feature | `widgets/subscription-card/ui/SubscriptionCard.tsx`                                  |
+| Форма + toast + кеш-инвалидация   | `features/update-profile/ui/ProfileForm.tsx`                                         |
+| Skeleton/EmptyState               | `shared/ui/{Skeleton,EmptyState}.tsx`; применение — `widgets/reviews-table/ui/ReviewsTable.tsx`, `pages/places-list/ui/PlacesListPage.tsx` |
+| Axios interceptor + тест          | `shared/api/httpClient.ts` + `shared/api/httpClient.test.ts` (axios-mock-adapter)    |
+| Subscription-guard на route       | `routes/api.php` (`Route::middleware('subscription.active:402')->group(...)`)       |
+| Тест mutation с моком httpClient  | `widgets/subscription-card/ui/SubscriptionCard.test.tsx` (vi.mock `@/shared/api`)    |
+| Feature-тест Owner-endpoint       | `tests/Feature/Owner/OwnerSubscriptionTest.php` (биндинг fake gateway + `loginAsOwner`) |
+| Security feature-тест             | `tests/Feature/Owner/OwnerSecurityTest.php` (cross-tenant 403, 402 на мутациях)     |
+
+**Подводные камни (узнаны в Фазах 4–7):**
+- `ensureCsrf()` в тестах — мокать через `vi.mock('@/shared/api', ...)`, иначе
+  падает на реальном axios-вызове `/sanctum/csrf-cookie`.
+- `sonner` в тестах — мокать `vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }))`.
+- `ApiErrorCode::ReviewNotFound` (и аналогичные для чужих ресурсов) → возвращаем
+  **404**, а не 403, чтобы не раскрывать существование чужого ID.
+- `Tariff::placesLimit` — `?int`, обновлять в `TariffMapper` при изменении VO.
+- `Money` валидирует > 0; `InitSubscriptionPaymentHandler` ждёт, что
+  `CalculateSubscriptionAmount` вернёт положительное число (есть env fallback).
+- `AcquirerGateway::isConfigured()` — на проде true, в фич-тестах биндим
+  `fakeAcquirerGateway(configured: bool, response: ...)` через `$this->app->bind()`.
+- **FP-only:** ES6-классы запрещены ESLint'ом (`no-restricted-syntax`). Для кастомных
+  ошибок — Error + name-тег + type guard (см. `isProfileValidationError`).
+- `PATCH /api/owner/profile` НЕ принимает telegram_id/tariff_id — контроллер
+  пробрасывает текущие значения owner'а в `UpdateOwnerProfileCommand`, чтобы
+  случайно не отвязать Telegram через профиль.
+- Смена `subdomain_slug` инвалидирует cookie — UI показывает предупреждение,
+  редирект ложится на сторону пользователя (открыть новый поддомен).
+- **`subscription.active:402`** vs `subscription.active` (403) — один middleware
+  `EnsureSubscriptionActive` с опциональным параметром-статусом. **Не менять
+  default 403** — public scan API исторически зависит от него.
+- **`init-payment` НЕ должен быть под `subscription.active`** — без подписки
+  владелец должен мочь её оплатить. То же для `PATCH /profile` (UX-нужда).
+- **402 interceptor** в `httpClient.ts` редиректит на `/owner/subscription`
+  и пробрасывает ошибку дальше → React Query увидит `onError`. Для тестов
+  использовать `axios-mock-adapter` (uses реальные interceptor'ы).
+- Тестируя interceptor — `Object.defineProperty(window, 'location', ...)` с
+  моком `assign`. `window.location.assign` — не reload, не сбрасывает axios state.
 
 ---
 

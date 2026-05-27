@@ -1,3 +1,21 @@
+# --- Сборка SPA-бандла Owner-панели ---
+# OwnerSpaController отдаёт base_path('../dist/owner/index.html'), поэтому
+# бандл должен лежать рядом с backend внутри php-образа.
+FROM node:22-alpine AS owner-frontend
+
+WORKDIR /build
+
+COPY frontend/package.json frontend/package-lock.json ./
+COPY frontend/scan/package.json ./scan/
+COPY frontend/owner/package.json ./owner/
+COPY frontend/shared/package.json ./shared/
+
+RUN npm ci --ignore-scripts
+
+COPY frontend/ ./
+
+RUN npm run build:owner
+
 FROM php:8.4-fpm-alpine AS php-base
 
 RUN apk add --no-cache \
@@ -43,11 +61,14 @@ COPY docker/php/php-production.ini /usr/local/etc/php/conf.d/98-guardreviews-pro
 
 COPY --from=vendor /var/www/html /var/www/html
 
+# Owner SPA bundle рядом с backend (см. OwnerSpaController::DIST_PATH).
+COPY --from=owner-frontend /dist/owner /var/www/dist/owner
+
 COPY docker/php/entrypoint.sh /usr/local/bin/entrypoint.sh
 
 RUN chmod +x /usr/local/bin/entrypoint.sh \
     && mkdir -p storage/framework/{cache,sessions,views} storage/logs bootstrap/cache \
-    && chown -R www-data:www-data /var/www/html
+    && chown -R www-data:www-data /var/www/html /var/www/dist
 
 USER www-data
 

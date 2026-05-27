@@ -5,12 +5,13 @@ import { AuthShell } from '@/widgets/auth-shell';
 import { DashboardPage } from '@/pages/dashboard';
 import { LoginPage } from '@/pages/login';
 import { NotFoundPage } from '@/pages/not-found';
-import { PlaceholderPage } from '@/pages/placeholder';
 import { PlaceCreatePage } from '@/pages/place-create';
 import { PlaceDetailPage } from '@/pages/place-detail';
 import { PlaceEditPage } from '@/pages/place-edit';
 import { PlacesListPage } from '@/pages/places-list';
+import { ProfilePage } from '@/pages/profile';
 import { ReviewsListPage } from '@/pages/reviews-list';
+import { SubscriptionPage } from '@/pages/subscription';
 
 import { RequireSession } from './RequireSession';
 
@@ -29,8 +30,8 @@ export function AppRouter() {
           <Route path="/places/:placeId" element={<PlaceDetailPage />} />
           <Route path="/places/:placeId/edit" element={<PlaceEditPage />} />
           <Route path="/reviews" element={<ReviewsListPage />} />
-          <Route path="/subscription" element={<PlaceholderPage title="Подписка" />} />
-          <Route path="/profile" element={<PlaceholderPage title="Профиль" />} />
+          <Route path="/subscription" element={<SubscriptionPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
         </Route>
       </Route>
 

@@ -16,13 +16,18 @@ final class EnsureSubscriptionActive
         private readonly Clock $clock,
     ) {}
 
-    public function handle(Request $request, Closure $next): Response
+    /**
+     * Гард на активную подписку. `$status` управляет HTTP-кодом отказа:
+     * public scan API исторически использует 403, owner-панель — 402
+     * (Payment Required) с UX-сигналом «иди оплати».
+     */
+    public function handle(Request $request, Closure $next, int|string $status = 403): Response
     {
         /** @var Owner|null $tenant */
         $tenant = $request->attributes->get('tenant');
 
         if ($tenant === null || ! $tenant->hasActiveSubscriptionAt($this->clock->now())) {
-            return ApiResponse::error(ApiErrorCode::SubscriptionExpired, 403);
+            return ApiResponse::error(ApiErrorCode::SubscriptionExpired, (int) $status);
         }
 
         return $next($request);

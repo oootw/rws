@@ -2,7 +2,7 @@ import { MapPin, MessageSquare, ShieldAlert, TrendingUp } from 'lucide-react';
 import type { ComponentType, SVGProps } from 'react';
 
 import type { DashboardSnapshot } from '@/entities/analytics';
-import { Card, Sparkline } from '@/shared/ui';
+import { Card, Skeleton, Sparkline } from '@/shared/ui';
 
 type KpiCardsProps = {
   data: DashboardSnapshot | undefined;
@@ -63,7 +63,9 @@ export function KpiCards({ data, isLoading }: KpiCardsProps) {
             <tile.icon className="h-4 w-4" />
             <span className="text-xs font-medium uppercase tracking-wide">{tile.label}</span>
           </div>
-          <div className="mt-3 text-3xl font-semibold tracking-tight">{tile.value}</div>
+          <div className="mt-3 text-3xl font-semibold tracking-tight">
+            {isLoading ? <Skeleton className="h-8 w-16" /> : tile.value}
+          </div>
           {tile.series !== undefined && (
             <div className="mt-2 text-accent">
               <Sparkline values={tile.series} ariaLabel={`Динамика «${tile.label}» за 7 дней`} />

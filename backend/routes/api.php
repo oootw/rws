@@ -10,7 +10,9 @@ use App\Interface\Http\Controllers\Owner\Auth\LogoutOwnerController;
 use App\Interface\Http\Controllers\Owner\OwnerDashboardController;
 use App\Interface\Http\Controllers\Owner\OwnerMeController;
 use App\Interface\Http\Controllers\Owner\OwnerPlacesController;
+use App\Interface\Http\Controllers\Owner\OwnerProfileController;
 use App\Interface\Http\Controllers\Owner\OwnerReviewsController;
+use App\Interface\Http\Controllers\Owner\OwnerSubscriptionController;
 use App\Interface\Http\Controllers\Public\SubmitReviewController;
 use App\Interface\Http\Controllers\Webhook\TelegramWebhookController;
 use App\Interface\Http\Controllers\Webhook\TinkoffWebhookController;
@@ -69,6 +71,7 @@ Route::prefix('owner')
             ->middleware('throttle:10,1');
 
         Route::middleware('auth:owner')->group(function (): void {
+            // Всегда доступно: auth/служебное/чтение/оплата/профиль.
             Route::get('me', OwnerMeController::class);
             Route::post('auth/logout', LogoutOwnerController::class);
 
@@ -76,12 +79,26 @@ Route::prefix('owner')
 
             Route::get('places', [OwnerPlacesController::class, 'index']);
             Route::get('places/charge-preview', [OwnerPlacesController::class, 'chargePreview']);
-            Route::post('places', [OwnerPlacesController::class, 'store']);
             Route::get('places/{place}', [OwnerPlacesController::class, 'show']);
-            Route::patch('places/{place}', [OwnerPlacesController::class, 'update']);
-            Route::post('places/{place}/toggle', [OwnerPlacesController::class, 'toggle']);
-            Route::delete('places/{place}', [OwnerPlacesController::class, 'destroy']);
 
-            Route::get('reviews', OwnerReviewsController::class);
+            Route::get('reviews', [OwnerReviewsController::class, 'index']);
+
+            Route::get('subscription', [OwnerSubscriptionController::class, 'show']);
+            Route::post('subscription/init-payment', [OwnerSubscriptionController::class, 'initPayment']);
+            Route::get('payments', [OwnerSubscriptionController::class, 'payments']);
+
+            Route::patch('profile', [OwnerProfileController::class, 'update']);
+            Route::post('profile/telegram/issue-code', [OwnerProfileController::class, 'issueTelegramCode'])
+                ->middleware('throttle:5,1');
+
+            // Платные мутации: требуют активной подписки. 402 + subscription_expired.
+            Route::middleware('subscription.active:402')->group(function (): void {
+                Route::post('places', [OwnerPlacesController::class, 'store']);
+                Route::patch('places/{place}', [OwnerPlacesController::class, 'update']);
+                Route::post('places/{place}/toggle', [OwnerPlacesController::class, 'toggle']);
+                Route::delete('places/{place}', [OwnerPlacesController::class, 'destroy']);
+
+                Route::patch('reviews/{review}/status', [OwnerReviewsController::class, 'changeStatus']);
+            });
         });
     });

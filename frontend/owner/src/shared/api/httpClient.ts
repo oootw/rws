@@ -15,6 +15,31 @@ export const httpClient = axios.create({
   },
 });
 
+const SUBSCRIPTION_PATH = '/owner/subscription';
+
+/**
+ * Подписочный гард: бекенд возвращает 402 на платные мутации, если подписка
+ * истекла. Перенаправляем пользователя на страницу подписки (если он ещё не
+ * там) и пробрасываем ошибку дальше — React Query увидит её в `onError`.
+ *
+ * Внешний редирект (`window.location.assign`) намеренный: он сбрасывает
+ * React-state и форсит свежую загрузку, что естественно после блокировки.
+ */
+httpClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (
+      isAxiosError(error) &&
+      error.response?.status === 402 &&
+      typeof window !== 'undefined' &&
+      !window.location.pathname.startsWith(SUBSCRIPTION_PATH)
+    ) {
+      window.location.assign(SUBSCRIPTION_PATH);
+    }
+    return Promise.reject(error);
+  },
+);
+
 const once = <T>(fn: () => Promise<T>): (() => Promise<T>) => {
   let cached: Promise<T> | null = null;
   return () => {

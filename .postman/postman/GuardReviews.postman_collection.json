@@ -1,0 +1,890 @@
+{
+  "info": {
+    "_postman_id": "gr-api-collection",
+    "name": "GuardReviews API",
+    "description": "Полная коллекция HTTP API проекта GuardReviews (30 запросов).\n\n## Быстрый старт\n\n1. Импортируйте `GuardReviews.local.postman_environment.json` и выберите окружение **GuardReviews — Local**.\n2. Запустите **00 Setup → Get CSRF Cookie** (обязательно перед любыми POST/PATCH/DELETE в `/api/owner/*`).\n3. Получите код входа через Telegram-бот (`/login`) и укажите его в переменной `loginCode`.\n4. Выполните **00 Setup → Exchange Login Code** — сессия сохранится в cookies Postman.\n5. Укажите `placeId` / `reviewId` из ответов list/create-запросов.\n\n## Тенант\n\n- **Production:** поддомен в Host (`cafe.otziv.space`).\n- **Local / staging / testing:** заголовок `X-Tenant-Slug: {{tenantSlug}}`.\n\n## CSRF и заголовки (owner API)\n\n- `GET /sanctum/csrf-cookie` → cookie `XSRF-TOKEN`\n- Мутирующие `/api/owner/*` → заголовок `X-XSRF-TOKEN` (из cookie, URL-decoded)\n- Как в SPA: `Accept: application/json`, `X-Requested-With: XMLHttpRequest`\n\nPre-request script подставляет заголовки автоматически для `/api/*`.\n\nПодробное описание — в `README.md`.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "{{baseUrl}}" },
+    { "key": "tenantSlug", "value": "{{tenantSlug}}" }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "const url = pm.request.url.toString();",
+          "const needsTenant = url.includes('/api/owner') || url.includes('/api/public');",
+          "const tenantSlug = pm.environment.get('tenantSlug') || pm.collectionVariables.get('tenantSlug');",
+          "if (needsTenant && tenantSlug) {",
+          "    pm.request.headers.upsert({ key: 'X-Tenant-Slug', value: tenantSlug });",
+          "}",
+          "if (url.includes('/api/')) {",
+          "    pm.request.headers.upsert({ key: 'Accept', value: 'application/json' });",
+          "    pm.request.headers.upsert({ key: 'X-Requested-With', value: 'XMLHttpRequest' });",
+          "}",
+          "const xsrf = pm.cookies.get('XSRF-TOKEN');",
+          "if (xsrf) {",
+          "    pm.request.headers.upsert({ key: 'X-XSRF-TOKEN', value: decodeURIComponent(xsrf) });",
+          "}"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "00 Setup — Owner Auth",
+      "description": "Подготовка cookie-сессии для owner-панели. Sanctum SPA: сначала CSRF-cookie, затем обмен 6-значного кода из Telegram.",
+      "item": [
+        {
+          "name": "Get CSRF Cookie",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/sanctum/csrf-cookie",
+            "description": "Получает cookie `XSRF-TOKEN` для последующих мутирующих запросов owner API."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 204 No Content', () => pm.response.to.have.status(204));",
+                  "pm.test('XSRF-TOKEN cookie установлен', () => {",
+                  "    pm.expect(pm.cookies.has('XSRF-TOKEN')).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Exchange Login Code",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"{{loginCode}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/owner/auth/exchange",
+            "description": "Обмен 6-значного кода из Telegram-бота на cookie-сессию owner.\n\nПеред запросом выполните **Get CSRF Cookie**, иначе будет 419. Throttle: 10 req/min.\n\nИстёкший/несуществующий код → 422 `login_code_invalid` (не `login_code_expired`: репозиторий фильтрует expired до consume)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test('Возвращает data с профилем владельца', () => {",
+                  "    pm.expect(json).to.have.property('data');",
+                  "    pm.expect(json.data).to.have.all.keys('id', 'name', 'email', 'subdomain', 'telegram_connected');",
+                  "});",
+                  "if (json.data && json.data.subdomain) {",
+                  "    pm.environment.set('tenantSlug', json.data.subdomain);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Me",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/owner/me",
+            "description": "Текущий авторизованный владелец. Требует cookie-сессию."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test('Структура OwnerMeView', () => {",
+                  "    pm.expect(json.data).to.have.all.keys('id', 'name', 'email', 'subdomain', 'telegram_connected');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/owner/auth/logout",
+            "description": "Инвалидация owner-сессии."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('logged_out = true', () => {",
+                  "    pm.expect(pm.response.json().data.logged_out).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "01 Public API",
+      "description": "Публичные эндпоинты QR-страницы отзывов. Префикс `/api/public`, middleware `tenant` + `resolve.public.place`. Большинство маршрутов требуют активную подписку (`subscription.active`).",
+      "item": [
+        {
+          "name": "Get Place",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/public/places/{{placeId}}",
+            "description": "Данные точки для публичной формы отзыва."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test('Структура data', () => {",
+                  "    pm.expect(json.data).to.have.all.keys(",
+                  "        'id', 'title', 'background_image_url', 'platforms',",
+                  "        'subscription_active', 'captcha_client_key', 'privacy_url'",
+                  "    );",
+                  "});",
+                  "pm.test('subscription_active = true', () => {",
+                  "    pm.expect(json.data.subscription_active).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Record Scan",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/public/places/{{placeId}}/scan",
+            "description": "Фиксирует событие сканирования QR-кода (analytics: Scanned)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('ok = true', () => pm.expect(pm.response.json().ok).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Redirect External",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"platform_type\": \"2gis\"\n}"
+            },
+            "url": "{{baseUrl}}/api/public/places/{{placeId}}/redirect",
+            "description": "Переход на внешнюю площадку отзыва. `platform_type` — одно из значений platforms точки."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test('ok = true и url присутствует', () => {",
+                  "    pm.expect(json.ok).to.eql(true);",
+                  "    pm.expect(json.url).to.be.a('string').and.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Submit Review",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"stars\": 2,\n  \"text\": \"Долго ждали заказ\",\n  \"contact\": \"+79990001122\",\n  \"consent_accepted\": true,\n  \"captcha_token\": \"test-token\"\n}"
+            },
+            "url": "{{baseUrl}}/api/public/places/{{placeId}}/reviews",
+            "description": "Отправка негативного отзыва (1–3 звезды). Throttle: 10 req/min.\n\n`captcha_token: test-token` работает только когда `YANDEX_CAPTCHA_SERVER_KEY` не задан (NullCaptchaVerifier). В production нужен реальный токен Yandex Smart Captcha."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('ok = true', () => pm.expect(pm.response.json().ok).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Report Critical Error",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"context\": \"no_platforms\"\n}"
+            },
+            "url": "{{baseUrl}}/api/public/places/{{placeId}}/critical-error",
+            "description": "Сообщение о критической ошибке на QR-странице. Не требует активной подписки."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('ok = true', () => pm.expect(pm.response.json().ok).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02 Owner — Dashboard",
+      "description": "KPI и дневная серия за 7 дней.",
+      "item": [
+        {
+          "name": "Get Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/owner/dashboard",
+            "description": "Агрегированная аналитика владельца."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test('KPI и daily_series', () => {",
+                  "    pm.expect(json.data).to.have.all.keys(",
+                  "        'scans', 'reviews', 'negative', 'redirects', 'places_count', 'daily_series'",
+                  "    );",
+                  "    pm.expect(json.data.daily_series).to.be.an('array').with.lengthOf(7);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "03 Owner — Places",
+      "description": "CRUD точек владельца.",
+      "item": [
+        {
+          "name": "List Places",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/owner/places",
+            "description": "Список точек текущего владельца."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test('data — массив', () => pm.expect(json.data).to.be.an('array'));",
+                  "if (json.data.length > 0) {",
+                  "    pm.environment.set('placeId', json.data[0].id);",
+                  "    pm.test('Элемент списка', () => {",
+                  "        pm.expect(json.data[0]).to.have.all.keys('id', 'title', 'platforms_count', 'is_active');",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Charge Preview",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/owner/places/charge-preview",
+            "description": "Предпросмотр доплаты при добавлении новой точки."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('Структура charge', () => {",
+                  "    pm.expect(pm.response.json().data).to.have.all.keys(",
+                  "        'prorata_amount', 'days_left', 'monthly_delta', 'requires_payment'",
+                  "    );",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Place",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Уютное кафе\",\n  \"background_image_url\": null,\n  \"platforms\": [\n    {\n      \"type\": \"2gis\",\n      \"url\": \"https://2gis.ru/firm/test\",\n      \"label\": \"2GIS\"\n    }\n  ]\n}"
+            },
+            "url": "{{baseUrl}}/api/owner/places",
+            "description": "Создание новой точки. Возвращает id и charge."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201 Created', () => pm.response.to.have.status(201));",
+                  "const json = pm.response.json();",
+                  "pm.test('data.id и charge', () => {",
+                  "    pm.expect(json.data).to.have.property('id');",
+                  "    pm.expect(json.charge).to.have.all.keys(",
+                  "        'prorata_amount', 'days_left', 'monthly_delta', 'requires_payment'",
+                  "    );",
+                  "});",
+                  "if (json.data && json.data.id) {",
+                  "    pm.environment.set('placeId', json.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Place Detail",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/owner/places/{{placeId}}",
+            "description": "Детали точки с QR-ссылками.\n\nПоле `qr_png_url` возвращается в JSON, но маршрут `GET /api/owner/places/{id}/qr.png` пока не зарегистрирован в routes."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('Структура detail', () => {",
+                  "    pm.expect(pm.response.json().data).to.have.all.keys(",
+                  "        'id', 'title', 'is_active', 'background_image_url',",
+                  "        'scan_url', 'qr_png_url', 'platforms'",
+                  "    );",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Place",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Новое название\",\n  \"background_image_url\": null,\n  \"platforms\": [\n    {\n      \"type\": \"2gis\",\n      \"url\": \"https://2gis.ru/firm/new\",\n      \"label\": \"2GIS\"\n    }\n  ]\n}"
+            },
+            "url": "{{baseUrl}}/api/owner/places/{{placeId}}",
+            "description": "Обновление точки."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('data.id совпадает', () => {",
+                  "    pm.expect(pm.response.json().data.id).to.eql(pm.environment.get('placeId'));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Toggle Place",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"active\": false\n}"
+            },
+            "url": "{{baseUrl}}/api/owner/places/{{placeId}}/toggle",
+            "description": "Включение/выключение точки."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('is_active в ответе', () => {",
+                  "    pm.expect(pm.response.json().data).to.have.property('is_active');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete Place",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/owner/places/{{placeId}}",
+            "description": "Удаление точки."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('deleted = true', () => {",
+                  "    pm.expect(pm.response.json().data.deleted).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "04 Owner — Reviews",
+      "description": "Список и смена статуса отзывов.",
+      "item": [
+        {
+          "name": "List Reviews",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/owner/reviews?page=1&per_page=20",
+            "description": "Пагинированный список отзывов.\n\nQuery (все опциональны): `status` (new|in_progress|resolved|archived), `place_id`, `from`, `until`, `page`, `per_page`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test('meta пагинации', () => {",
+                  "    pm.expect(json.meta).to.have.all.keys('total', 'page', 'per_page', 'last_page');",
+                  "});",
+                  "if (json.data && json.data.length > 0) {",
+                  "    pm.environment.set('reviewId', json.data[0].id);",
+                  "    pm.test('Элемент отзыва', () => {",
+                  "        pm.expect(json.data[0]).to.have.all.keys(",
+                  "            'id', 'place_id', 'place_title', 'stars', 'status',",
+                  "            'contact', 'text', 'created_at'",
+                  "        );",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Change Review Status",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"resolved\"\n}"
+            },
+            "url": "{{baseUrl}}/api/owner/reviews/{{reviewId}}/status",
+            "description": "Смена статуса отзыва. Допустимые значения: new, in_progress, resolved, archived."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('id и status в ответе', () => {",
+                  "    const data = pm.response.json().data;",
+                  "    pm.expect(data).to.have.property('id');",
+                  "    pm.expect(data).to.have.property('status');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "05 Owner — Subscription & Payments",
+      "description": "Подписка, инициализация оплаты, история платежей.",
+      "item": [
+        {
+          "name": "Get Subscription",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/owner/subscription",
+            "description": "Сводка текущей подписки."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('Структура subscription', () => {",
+                  "    pm.expect(pm.response.json().data).to.have.all.keys(",
+                  "        'tariff_id', 'tariff_title', 'ends_at', 'days_left', 'is_active',",
+                  "        'places_used', 'places_limit', 'next_charge_amount'",
+                  "    );",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Init Payment",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/owner/subscription/init-payment",
+            "description": "Создание платежа в Tinkoff и получение payment_url."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 или 422', () => {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 422]);",
+                  "});",
+                  "if (pm.response.code === 200) {",
+                  "    pm.test('payment_url присутствует', () => {",
+                  "        pm.expect(pm.response.json().data.payment_url).to.be.a('string');",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Payments",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/owner/payments?page=1&per_page=20",
+            "description": "История платежей владельца."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test('meta пагинации', () => {",
+                  "    pm.expect(json.meta).to.have.all.keys('total', 'page', 'per_page', 'last_page');",
+                  "});",
+                  "if (json.data && json.data.length > 0) {",
+                  "    pm.test('Элемент платежа', () => {",
+                  "        pm.expect(json.data[0]).to.have.all.keys(",
+                  "            'id', 'amount', 'status', 'external_id', 'tariff_title', 'created_at'",
+                  "        );",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "06 Webhooks",
+      "description": "Входящие webhook-и от внешних сервисов. Без tenant middleware.",
+      "item": [
+        {
+          "name": "Tinkoff Notification",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"TerminalKey\": \"{{tinkoffTerminalKey}}\",\n  \"OrderId\": \"00000000-0000-0000-0000-000000000000\",\n  \"Success\": true,\n  \"Status\": \"CONFIRMED\",\n  \"PaymentId\": 123456,\n  \"Amount\": 99000,\n  \"ErrorCode\": \"0\",\n  \"Token\": \"REPLACE_WITH_SIGNED_TOKEN\"\n}"
+            },
+            "url": "{{baseUrl}}/api/webhooks/tinkoff",
+            "description": "Webhook подтверждения оплаты Tinkoff. Token — HMAC-SHA256 по правилам Tinkoff. Ответ: `OK` (200) или `INVALID` (400)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 или 400', () => {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 400]);",
+                  "});",
+                  "pm.test('Тело OK или INVALID', () => {",
+                  "    pm.expect(pm.response.text()).to.match(/^(OK|INVALID)$/);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Telegram Update",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"update_id\": 1,\n  \"message\": {\n    \"message_id\": 1,\n    \"date\": 1700000000,\n    \"chat\": { \"id\": 1001, \"type\": \"private\" },\n    \"text\": \"/start\"\n  }\n}"
+            },
+            "url": "{{baseUrl}}/api/webhooks/telegram",
+            "description": "Webhook Telegram Bot API (Nutgram). Ответ: plain text `OK`.\n\nТребует `NUTGRAM_TOKEN` в .env. Без токена или при ошибке бота возможен 500."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 или 500', () => {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 500]);",
+                  "});",
+                  "if (pm.response.code === 200) {",
+                  "    pm.test('Тело OK', () => pm.expect(pm.response.text()).to.eql('OK'));",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "07 Internal & Health",
+      "description": "Служебные эндпоинты без tenant.",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/",
+            "description": "Простая проверка живости приложения."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('isHealthy = true', () => {",
+                  "    pm.expect(pm.response.json().isHealthy).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Laravel Health (/up)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/up",
+            "description": "Встроенный health-check Laravel."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 OK', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TLS Allow",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/internal/tls-allow?domain=cafe.guardreviews.test",
+            "description": "Caddy on-demand TLS ask-эндпоинт. 200 `ok` — разрешить сертификат, 404 `not allowed` — отклонить."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 или 404', () => {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 404]);",
+                  "});",
+                  "pm.test('Тело ok или not allowed', () => {",
+                  "    pm.expect(pm.response.text()).to.match(/^(ok|not allowed)$/);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "08 Web Pages",
+      "description": "HTML/text страницы (не JSON API).",
+      "item": [
+        {
+          "name": "Payment Success",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/payment/success",
+            "description": "Страница успешной оплаты (plain text)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('Content-Type text/plain', () => {",
+                  "    pm.expect(pm.response.headers.get('Content-Type')).to.include('text/plain');",
+                  "});",
+                  "pm.test('Текст об успехе', () => {",
+                  "    pm.expect(pm.response.text()).to.include('Оплата прошла успешно');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Payment Fail",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/payment/fail",
+            "description": "Страница неуспешной оплаты (plain text)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('Текст о неудаче', () => {",
+                  "    pm.expect(pm.response.text()).to.include('Оплата не завершена');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "09 Legacy",
+      "description": "Устаревшие или служебные маршруты.",
+      "item": [
+        {
+          "name": "Sanctum User",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/user",
+            "description": "Laravel Sanctum default route. Требует `auth:sanctum` (Bearer token или cookie web-guard)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 или 401', () => {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 401]);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

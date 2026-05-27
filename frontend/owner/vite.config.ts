@@ -36,6 +36,7 @@ export default defineConfig({
         navigateFallback: '/owner/index.html',
         navigateFallbackDenylist: [/^\/api\//, /^\/sanctum\//],
         runtimeCaching: [
+          // Сессия — NetworkFirst, чтобы быстро узнать о logout/смене slug.
           {
             urlPattern: ({ url }) => url.pathname.startsWith('/api/owner/me'),
             handler: 'NetworkFirst',
@@ -43,6 +44,16 @@ export default defineConfig({
               cacheName: 'owner-me',
               networkTimeoutSeconds: 3,
               expiration: { maxAgeSeconds: 60 * 5 },
+            },
+          },
+          // Dashboard — NetworkFirst, фолбэк на кеш если оффлайн (KPI не критичны).
+          {
+            urlPattern: ({ url }) => url.pathname.startsWith('/api/owner/dashboard'),
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'owner-dashboard',
+              networkTimeoutSeconds: 5,
+              expiration: { maxAgeSeconds: 60 * 10 },
             },
           },
         ],

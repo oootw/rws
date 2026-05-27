@@ -20,6 +20,7 @@ FROM nginx:1.27-alpine
 
 COPY docker/nginx/default.conf /etc/nginx/conf.d/default.conf
 COPY --from=frontend /dist/scan /var/www/frontend/scan
+COPY --from=frontend /dist/owner /var/www/frontend/owner
 COPY backend/public /var/www/backend/public
 
 EXPOSE 80
