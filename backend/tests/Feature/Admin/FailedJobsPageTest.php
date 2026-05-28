@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Application\Jobs\FailedJobsActions;
 use App\Application\Jobs\FailedJobsReader;
 use App\Interface\Filament\Auth\AdminUser;
+use Carbon\CarbonInterface;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -29,7 +30,7 @@ beforeEach(function (): void {
     );
 });
 
-function insertFailedJob(string $jobClass = 'App\\Jobs\\SendNegativeReviewAlert', ?Carbon\CarbonInterface $failedAt = null): string
+function insertFailedJob(string $jobClass = 'App\\Jobs\\SendNegativeReviewAlert', ?CarbonInterface $failedAt = null): string
 {
     $uuid = (string) Str::uuid();
     DB::table('failed_jobs')->insert([

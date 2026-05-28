@@ -38,6 +38,7 @@ final readonly class NotifyAboutNegativeReviewHandler
                 new NotificationAction('Архив', "review:{$command->reviewId}:archived"),
             ],
             kind: 'negative_review',
+            targetUrl: "/owner/reviews/{$command->reviewId}",
         ));
     }
 }

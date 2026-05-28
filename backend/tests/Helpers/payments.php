@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-use App\Application\Payments\NotificationOutcome;
-use App\Application\Payments\PaymentNotification;
-use App\Application\Payments\PaymentNotificationParser;
 use App\Application\Payments\AcquirerGateway;
 use App\Application\Payments\InitPaymentRequest;
 use App\Application\Payments\InitPaymentResponse;
+use App\Application\Payments\NotificationOutcome;
+use App\Application\Payments\PaymentNotification;
+use App\Application\Payments\PaymentNotificationParser;
 use App\Application\Shared\Transactions\TransactionRunner;
 use App\Domain\Iam\OwnerId;
 use App\Domain\Iam\TariffId;
@@ -76,7 +76,7 @@ function immediateTransactionRunner(): TransactionRunner
 {
     return new class implements TransactionRunner
     {
-        public function run(\Closure $callback): mixed
+        public function run(Closure $callback): mixed
         {
             return $callback();
         }

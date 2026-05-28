@@ -15,6 +15,7 @@ enum ApiErrorCode: string
     case SessionTenantMismatch = 'session_tenant_mismatch';
     case OwnerNotLinkedToTelegram = 'owner_not_linked_to_telegram';
     case FeatureNotAvailable = 'feature_not_available';
+    case PushSubscriptionNotFound = 'push_subscription_not_found';
 
     public function message(): string
     {
@@ -30,6 +31,7 @@ enum ApiErrorCode: string
             self::SessionTenantMismatch => 'Сессия не принадлежит этому кабинету.',
             self::OwnerNotLinkedToTelegram => 'Telegram не привязан. Привяжите аккаунт через бот.',
             self::FeatureNotAvailable => 'Эта функция недоступна на вашем тарифе.',
+            self::PushSubscriptionNotFound => 'Push-подписка не найдена.',
         };
     }
 }

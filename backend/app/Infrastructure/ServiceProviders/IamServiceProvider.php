@@ -8,14 +8,18 @@ use App\Application\Iam\IssueOwnerImpersonationToken\OwnerImpersonationTokenIssu
 use App\Domain\Iam\OwnerIdGenerator;
 use App\Domain\Iam\OwnerLoginRequestIdGenerator;
 use App\Domain\Iam\OwnerLoginRequestRepository;
+use App\Domain\Iam\OwnerPushSubscriptionIdGenerator;
 use App\Domain\Iam\OwnerRepository;
+use App\Domain\Iam\PushSubscriptionRepository;
 use App\Domain\Iam\TariffRepository;
 use App\Infrastructure\Iam\SanctumOwnerImpersonationTokenIssuer;
 use App\Infrastructure\Persistence\Eloquent\Iam\EloquentOwnerLoginRequestRepository;
 use App\Infrastructure\Persistence\Eloquent\Iam\EloquentOwnerRepository;
+use App\Infrastructure\Persistence\Eloquent\Iam\EloquentPushSubscriptionRepository;
 use App\Infrastructure\Persistence\Eloquent\Iam\EloquentTariffRepository;
 use App\Infrastructure\Persistence\Eloquent\Iam\UuidOwnerIdGenerator;
 use App\Infrastructure\Persistence\Eloquent\Iam\UuidOwnerLoginRequestIdGenerator;
+use App\Infrastructure\Persistence\Eloquent\Iam\UuidOwnerPushSubscriptionIdGenerator;
 use Illuminate\Support\ServiceProvider;
 use Random\Randomizer;
 
@@ -27,6 +31,8 @@ final class IamServiceProvider extends ServiceProvider
         OwnerIdGenerator::class => UuidOwnerIdGenerator::class,
         OwnerLoginRequestRepository::class => EloquentOwnerLoginRequestRepository::class,
         OwnerLoginRequestIdGenerator::class => UuidOwnerLoginRequestIdGenerator::class,
+        PushSubscriptionRepository::class => EloquentPushSubscriptionRepository::class,
+        OwnerPushSubscriptionIdGenerator::class => UuidOwnerPushSubscriptionIdGenerator::class,
         TariffRepository::class => EloquentTariffRepository::class,
         OwnerImpersonationTokenIssuer::class => SanctumOwnerImpersonationTokenIssuer::class,
     ];

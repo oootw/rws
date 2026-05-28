@@ -71,7 +71,7 @@ it('возвращает ошибку если тариф не найден', fu
 
 it('возвращает ошибку при исключении эквайера', function (): void {
     $handler = initSubscriptionPaymentHandler(
-        acquirer: fakeAcquirerGateway(throws: new \RuntimeException('network')),
+        acquirer: fakeAcquirerGateway(throws: new RuntimeException('network')),
     );
 
     $result = $handler->handle(new InitSubscriptionPaymentCommand(

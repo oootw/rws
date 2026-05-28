@@ -2,35 +2,11 @@
 
 declare(strict_types=1);
 
-use App\Domain\Iam\OwnerLoginRequest;
-use App\Domain\Iam\OwnerLoginRequestId;
-use App\Domain\Iam\OwnerLoginRequestRepository;
-use App\Domain\Iam\TelegramId;
 use App\Models\OwnerLoginRequest as OwnerLoginRequestModel;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Str;
 
 uses(RefreshDatabase::class);
-
-function issueLoginRequest(
-    string $ownerId,
-    string $code,
-    string $telegramId = '1001',
-    ?DateTimeImmutable $now = null,
-    int $ttlSeconds = 600,
-): void {
-    $now ??= new DateTimeImmutable('now');
-    $request = OwnerLoginRequest::issue(
-        id: new OwnerLoginRequestId((string) Str::uuid()),
-        ownerId: new App\Domain\Iam\OwnerId($ownerId),
-        telegramId: new TelegramId($telegramId),
-        code: $code,
-        now: $now,
-        ttlSeconds: $ttlSeconds,
-    );
-    app(OwnerLoginRequestRepository::class)->save($request);
-}
 
 it('обменивает корректный код на сессию и возвращает OwnerMeView', function (): void {
     $user = User::factory()->create([

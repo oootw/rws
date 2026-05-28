@@ -2,8 +2,9 @@
 
 namespace App\Jobs;
 
-use App\Application\Iam\GetOwnerById\GetOwnerByIdHandler;
-use App\Application\Iam\GetOwnerById\GetOwnerByIdQuery;
+use App\Application\Iam\Exceptions\TenantNotFound;
+use App\Application\Notifications\BuildOwnerContact\BuildOwnerContactHandler;
+use App\Application\Notifications\BuildOwnerContact\BuildOwnerContactQuery;
 use App\Application\Notifications\NotifyAboutNegativeReview\NotifyAboutNegativeReviewCommand;
 use App\Application\Notifications\NotifyAboutNegativeReview\NotifyAboutNegativeReviewHandler;
 use App\Models\Review;
@@ -11,7 +12,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 
 /**
- * Адаптер очереди: грузит отзыв + точку, спрашивает у Iam владельца,
+ * Адаптер очереди: грузит отзыв + точку, собирает OwnerContact (telegram + push),
  * вызывает Notifications use case. Бизнес-логики в job нет — только склейка.
  *
  * Надёжность доставки:
@@ -42,7 +43,7 @@ final class SendNegativeReviewAlert implements ShouldQueue
     }
 
     public function handle(
-        GetOwnerByIdHandler $getOwner,
+        BuildOwnerContactHandler $buildContact,
         NotifyAboutNegativeReviewHandler $notify,
     ): void {
         $review = Review::query()->with('place')->find($this->reviewId);
@@ -51,14 +52,16 @@ final class SendNegativeReviewAlert implements ShouldQueue
             return;
         }
 
-        $owner = $getOwner->handle(new GetOwnerByIdQuery(ownerId: (string) $review->place->user_id));
-
-        if ($owner === null) {
+        try {
+            $contact = $buildContact->handle(new BuildOwnerContactQuery(
+                ownerId: (string) $review->place->user_id,
+            ));
+        } catch (TenantNotFound) {
             return;
         }
 
         $notify->handle(new NotifyAboutNegativeReviewCommand(
-            contact: $owner->asNotificationContact(),
+            contact: $contact,
             reviewId: (string) $review->id,
             placeTitle: (string) $review->place->title,
             stars: (int) $review->stars,

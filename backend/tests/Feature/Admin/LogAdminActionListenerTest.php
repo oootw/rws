@@ -7,6 +7,7 @@ use App\Models\AdminActionLog;
 use Filament\Actions\Action;
 use Filament\Actions\Events\ActionCalled;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Hash;
 
 uses(RefreshDatabase::class);
@@ -31,7 +32,7 @@ it('пишет аудит-запись при ActionCalled событии Filame
 
     $action = Action::make('extend_subscription');
 
-    \Illuminate\Support\Facades\Event::dispatch(ActionCalled::class, $action);
+    Event::dispatch(ActionCalled::class, $action);
 
     $log = AdminActionLog::query()->first();
 
@@ -43,7 +44,7 @@ it('пишет аудит-запись при ActionCalled событии Filame
 it('не пишет запись без аутентифицированного админа', function (): void {
     $action = Action::make('refresh');
 
-    \Illuminate\Support\Facades\Event::dispatch(ActionCalled::class, $action);
+    Event::dispatch(ActionCalled::class, $action);
 
     expect(AdminActionLog::query()->count())->toBe(0);
 });

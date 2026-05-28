@@ -5,14 +5,17 @@ declare(strict_types=1);
 namespace App\Infrastructure\ServiceProviders;
 
 use App\Application\Notifications\AdminNotifier;
+use App\Application\Notifications\Channels\WebPushClient;
 use App\Application\Notifications\Logging\NotificationDeliveryLogger;
 use App\Application\Notifications\OwnerNotifier;
 use App\Infrastructure\Notifications\Channels\EmailNotificationChannel;
 use App\Infrastructure\Notifications\Channels\MaxNotificationChannel;
 use App\Infrastructure\Notifications\Channels\TelegramNotificationChannel;
+use App\Infrastructure\Notifications\Channels\WebPushNotificationChannel;
 use App\Infrastructure\Notifications\EmailAdminNotifier;
 use App\Infrastructure\Notifications\Logging\EloquentNotificationDeliveryLogger;
 use App\Infrastructure\Notifications\MultiChannelOwnerNotifier;
+use App\Infrastructure\Notifications\Push\MinishlinkWebPushClient;
 use Illuminate\Contracts\Container\Container;
 use Illuminate\Support\ServiceProvider;
 use Psr\Log\LoggerInterface;
@@ -26,6 +29,7 @@ final class NotificationsServiceProvider extends ServiceProvider
     /** @var array<class-string, class-string> */
     public array $bindings = [
         NotificationDeliveryLogger::class => EloquentNotificationDeliveryLogger::class,
+        WebPushClient::class => MinishlinkWebPushClient::class,
     ];
 
     public function register(): void
@@ -35,6 +39,7 @@ final class NotificationsServiceProvider extends ServiceProvider
         $this->app->singleton(OwnerNotifier::class, function (Container $app): OwnerNotifier {
             return new MultiChannelOwnerNotifier(
                 instantChannels: [
+                    $app->make(WebPushNotificationChannel::class),
                     $app->make(TelegramNotificationChannel::class),
                     $app->make(MaxNotificationChannel::class),
                 ],

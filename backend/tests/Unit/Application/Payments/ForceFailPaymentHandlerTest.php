@@ -5,6 +5,8 @@ declare(strict_types=1);
 use App\Application\Payments\Exceptions\PaymentTransactionNotFound;
 use App\Application\Payments\ForceFailPayment\ForceFailPaymentCommand;
 use App\Application\Payments\ForceFailPayment\ForceFailPaymentHandler;
+use App\Domain\Iam\OwnerId;
+use App\Domain\Iam\TariffId;
 use App\Domain\Payments\Money;
 use App\Domain\Payments\PaymentStatus;
 use App\Domain\Payments\PaymentTransaction;
@@ -24,8 +26,8 @@ it('переводит pending транзакцию в failed', function (): voi
 it('идемпотентен: failed → failed без ошибок', function (): void {
     $failed = PaymentTransaction::restore(
         id: new PaymentTransactionId('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'),
-        ownerId: new \App\Domain\Iam\OwnerId('22222222-2222-2222-2222-222222222222'),
-        tariffId: new \App\Domain\Iam\TariffId('cccccccc-cccc-cccc-cccc-cccccccccccc'),
+        ownerId: new OwnerId('22222222-2222-2222-2222-222222222222'),
+        tariffId: new TariffId('cccccccc-cccc-cccc-cccc-cccccccccccc'),
         amount: new Money(99000),
         status: PaymentStatus::Failed,
         externalId: null,
@@ -42,8 +44,8 @@ it('идемпотентен: failed → failed без ошибок', function (
 it('бросает LogicException, если транзакция уже Success (доменное правило)', function (): void {
     $success = PaymentTransaction::restore(
         id: new PaymentTransactionId('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'),
-        ownerId: new \App\Domain\Iam\OwnerId('22222222-2222-2222-2222-222222222222'),
-        tariffId: new \App\Domain\Iam\TariffId('cccccccc-cccc-cccc-cccc-cccccccccccc'),
+        ownerId: new OwnerId('22222222-2222-2222-2222-222222222222'),
+        tariffId: new TariffId('cccccccc-cccc-cccc-cccc-cccccccccccc'),
         amount: new Money(99000),
         status: PaymentStatus::Success,
         externalId: 'ext-1',

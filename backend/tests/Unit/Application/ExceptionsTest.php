@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 use App\Application\Iam\Exceptions\SubdomainAlreadyTaken;
 use App\Application\Payments\Exceptions\PaymentTransactionNotFound;
-use App\Domain\Iam\SubdomainSlug;
 
 it('создаёт исключение «адрес уже занят» с адресом', function (): void {
     $exception = new SubdomainAlreadyTaken('cafe');

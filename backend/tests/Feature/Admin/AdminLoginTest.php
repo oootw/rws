@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Interface\Filament\Auth\AdminUser;
+use Filament\Auth\Pages\Login;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -75,7 +76,7 @@ it('запрещает вход, если ADMIN_EMAIL не задан', function
 });
 
 it('Filament login аутентифицирует админа с UUID идентификатором', function (): void {
-    Livewire::test(\Filament\Auth\Pages\Login::class)
+    Livewire::test(Login::class)
         ->fillForm([
             'email' => 'dev@test.local',
             'password' => 'test-password-strong-12',

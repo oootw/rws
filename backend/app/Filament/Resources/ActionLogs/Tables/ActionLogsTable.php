@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\ActionLogs\Tables;
 
-use App\Domain\Analytics\ActionType;
 use App\Filament\Resources\ActionLogs\Schemas\ActionLogTypeLabels;
 use App\Models\Place;
 use App\Models\User;

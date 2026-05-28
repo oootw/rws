@@ -135,6 +135,16 @@ return [
         'ttl_seconds' => (int) env('OWNER_LOGIN_TTL_SECONDS', 600),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Telegram chat link (общий TG-чат на владельца, эпик A)
+    |--------------------------------------------------------------------------
+    */
+
+    'chat_link' => [
+        'ttl_seconds' => (int) env('TELEGRAM_CHAT_LINK_TTL_SECONDS', 600),
+    ],
+
     'admin' => [
         'path' => env('ADMIN_PANEL_PATH', 'admin'),
         'email' => env('ADMIN_EMAIL'),

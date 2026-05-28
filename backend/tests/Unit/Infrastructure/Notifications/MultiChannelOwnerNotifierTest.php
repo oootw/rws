@@ -3,10 +3,10 @@
 declare(strict_types=1);
 
 use App\Application\Notifications\Channels\NotificationChannel;
-use App\Application\Notifications\OwnerNotification;
-use App\Domain\Notifications\OwnerContact;
 use App\Application\Notifications\Logging\NotificationDeliveryLogger;
 use App\Application\Notifications\Logging\NotificationDeliveryStatus;
+use App\Application\Notifications\OwnerNotification;
+use App\Domain\Notifications\OwnerContact;
 use App\Infrastructure\Notifications\MultiChannelOwnerNotifier;
 use App\Infrastructure\Notifications\NotificationDeliveryFailed;
 use Psr\Log\NullLogger;

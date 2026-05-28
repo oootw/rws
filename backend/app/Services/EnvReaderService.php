@@ -15,7 +15,7 @@ namespace App\Services;
 final class EnvReaderService
 {
     /**
-     * @return array<string, string>  пары ключ → значение в порядке файла
+     * @return array<string, string> пары ключ → значение в порядке файла
      */
     public function read(string $path): array
     {

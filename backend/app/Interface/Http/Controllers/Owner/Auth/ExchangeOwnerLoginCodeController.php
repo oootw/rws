@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Interface\Http\Controllers\Owner\Auth;
 
-use App\Application\Iam\ExchangeOwnerLoginCode\ExchangeOwnerLoginCodeHandler;
 use App\Application\Iam\Exceptions\LoginCodeNotFound;
+use App\Application\Iam\ExchangeOwnerLoginCode\ExchangeOwnerLoginCodeHandler;
 use App\Domain\Iam\LoginCodeAlreadyConsumed;
 use App\Domain\Iam\LoginCodeExpired;
 use App\Domain\Iam\Owner;

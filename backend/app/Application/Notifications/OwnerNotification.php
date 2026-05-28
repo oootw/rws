@@ -17,6 +17,9 @@ final readonly class OwnerNotification
 {
     /**
      * @param  list<NotificationAction>  $actions
+     * @param  string|null  $targetUrl  абсолютный или relative URL для deep-link
+     *                                  каналов (push-уведомление по клику ведёт
+     *                                  именно сюда). null — открыть owner-shell.
      */
     public function __construct(
         public OwnerContact $contact,
@@ -24,5 +27,6 @@ final readonly class OwnerNotification
         public string $emailSubject,
         public array $actions = [],
         public string $kind = 'unknown',
+        public ?string $targetUrl = null,
     ) {}
 }

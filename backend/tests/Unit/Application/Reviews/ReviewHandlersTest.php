@@ -7,8 +7,8 @@ use App\Application\Reviews\ChangeReviewStatus\ChangeReviewStatusHandler;
 use App\Application\Reviews\ChangeReviewStatus\ChangeReviewStatusResult;
 use App\Application\Reviews\ListRecentReviewsForOwner\ListRecentReviewsForOwnerHandler;
 use App\Application\Reviews\ListRecentReviewsForOwner\ListRecentReviewsForOwnerQuery;
-use App\Application\Reviews\ListRecentReviewsForOwner\RecentReviewView;
 use App\Application\Reviews\ListRecentReviewsForOwner\RecentReviewsReader;
+use App\Application\Reviews\ListRecentReviewsForOwner\RecentReviewView;
 use App\Enums\ReviewStatus;
 
 it('меняет статус отзыва владельца', function (): void {

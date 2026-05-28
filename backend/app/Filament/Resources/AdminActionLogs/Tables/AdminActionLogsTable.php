@@ -6,6 +6,7 @@ namespace App\Filament\Resources\AdminActionLogs\Tables;
 
 use Filament\Actions\ViewAction;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\TextInput;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Table;
@@ -54,7 +55,7 @@ final class AdminActionLogsTable
                 Filter::make('action')
                     ->label('Действие')
                     ->schema([
-                        \Filament\Forms\Components\TextInput::make('value')->label('содержит'),
+                        TextInput::make('value')->label('содержит'),
                     ])
                     ->query(fn (Builder $q, array $data): Builder => empty($data['value'])
                         ? $q
@@ -63,7 +64,7 @@ final class AdminActionLogsTable
                 Filter::make('admin_email')
                     ->label('Email админа')
                     ->schema([
-                        \Filament\Forms\Components\TextInput::make('value')->label('содержит'),
+                        TextInput::make('value')->label('содержит'),
                     ])
                     ->query(fn (Builder $q, array $data): Builder => empty($data['value'])
                         ? $q

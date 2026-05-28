@@ -14,6 +14,12 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
+      // Свой SW (src/sw.ts) — нужен, чтобы перехватывать `push` и
+      // `notificationclick` event'ы. Workbox-precache и runtime-caching
+      // остаются — собираются внутри sw.ts.
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.ts',
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'icons/icon-192.png', 'icons/icon-512.png'],
       manifest: {
@@ -32,31 +38,10 @@ export default defineConfig({
           { src: 'icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },
-      workbox: {
-        navigateFallback: '/owner/index.html',
-        navigateFallbackDenylist: [/^\/api\//, /^\/sanctum\//],
-        runtimeCaching: [
-          // Сессия — NetworkFirst, чтобы быстро узнать о logout/смене slug.
-          {
-            urlPattern: ({ url }) => url.pathname.startsWith('/api/owner/me'),
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'owner-me',
-              networkTimeoutSeconds: 3,
-              expiration: { maxAgeSeconds: 60 * 5 },
-            },
-          },
-          // Dashboard — NetworkFirst, фолбэк на кеш если оффлайн (KPI не критичны).
-          {
-            urlPattern: ({ url }) => url.pathname.startsWith('/api/owner/dashboard'),
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'owner-dashboard',
-              networkTimeoutSeconds: 5,
-              expiration: { maxAgeSeconds: 60 * 10 },
-            },
-          },
-        ],
+      injectManifest: {
+        // navigateFallback из workbox-generation нам не нужен в injectManifest —
+        // SW сам делает это через workbox-routing.NavigationRoute.
+        globPatterns: ['**/*.{js,css,html,svg,png,ico}'],
       },
     }),
   ],

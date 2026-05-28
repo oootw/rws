@@ -17,7 +17,7 @@ final class EnvMasker
 
     /**
      * @param  array<string, string>  $env
-     * @return array<string, string>  значение уже замаскировано (длина оригинала сохранена в подсказке)
+     * @return array<string, string> значение уже замаскировано (длина оригинала сохранена в подсказке)
      */
     public function mask(array $env): array
     {

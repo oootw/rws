@@ -129,6 +129,11 @@ nano backend/.env
 #   ADMIN_PASSWORD_HASH=              ← заполнится через `php artisan admin:password --show-env`
 #   ADMIN_NAME=Admin
 #   ADMIN_PANEL_PATH=admin            ← необязательно, дефолт 'admin'
+#
+#   # Web Push (см. §«VAPID keys» ниже — генерация раз на стенд, не теряйте private):
+#   VAPID_PUBLIC_KEY=
+#   VAPID_PRIVATE_KEY=
+#   VAPID_SUBJECT=mailto:ops@otziv.space
 
 # ВАЖНО: из РФ VDS api.telegram.org заблокирован Роскомнадзором.
 # Поднимите свой relay вне РФ (готовый стек: deploy/telegram-proxy/) и пропишите:
@@ -358,6 +363,59 @@ make prod-shell
 - [ ] Регулярный бэкап `postgres_data` (см. ниже) — захватывает отзывы.
 - [ ] При восстановлении Telegram-прокси — `php artisan reviews:retry-failed-alerts`.
 - [ ] Если есть резервный прокси — пропишите `TELEGRAM_API_URLS` (см. `docs/TELEGRAM_RU.md`).
+
+---
+
+## 6.1. VAPID keys: генерация и rotation
+
+Web Push (`/owner/push/*`) подписывает каждое уведомление парой
+`VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY`. Пара генерируется ОДИН РАЗ на стенд
+и кладётся в `backend/.env` + ваши secrets storage. Public key отдаётся
+фронту через `GET /api/owner/push/config` — в SPA bundle он не вшит,
+ротация без передеплоя.
+
+### Генерация (новый стенд)
+
+```bash
+make prod-shell  # или make staging-shell
+
+  # Печатает пару — копируем в backend/.env вручную.
+  php artisan webpush:generate-vapid
+
+  # Альтернатива: готовые .env-строки.
+  php artisan webpush:generate-vapid --for-env
+```
+
+После записи ключей в `backend/.env` — `php artisan config:clear` и
+перезапуск стека (`make prod-down && make prod-up`).
+`VAPID_SUBJECT=mailto:ops@otziv.space` — любой контакт, по которому
+push-сервис свяжется при злоупотреблениях.
+
+### Rotation
+
+Прямой rotation отключает все существующие подписки (браузер привязывает
+endpoint к public key VAPID). Безопасный порядок:
+
+1. Сгенерировать новую пару, **сохранить старую** локально.
+2. Заменить значения в `backend/.env`, `make prod-down && make prod-up`.
+3. SPA при следующем `GET /push/config` получит новый public key и при
+   следующем `subscribe` перерегистрирует устройство.
+4. Старые подписки начнут возвращать 410 (`gone`) — канал
+   `WebPushNotificationChannel` сам удалит их из БД.
+5. Через 1–2 недели можно полностью удалить старые ключи.
+
+В будущем (v2) можно добавить `vapid_key_id` в таблицу подписок и
+поддерживать N активных ключей одновременно — на MVP не нужно.
+
+### Безопасность
+
+- Никогда не коммитьте `VAPID_PRIVATE_KEY` — `.env` в `.gitignore`,
+  в CI секреты подкладываются через `secrets.VAPID_PRIVATE_KEY`
+  (см. `.github/workflows/ci.yml`).
+- Production и staging должны иметь **разные** пары — иначе rotation
+  prod-а угонит подписки staging-а (и наоборот).
+- `VAPID_SUBJECT` обязан быть `mailto:` или `https://` URI — иначе
+  Mozilla / FCM могут отклонить запрос.
 
 ---
 

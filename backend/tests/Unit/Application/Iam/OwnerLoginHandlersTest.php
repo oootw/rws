@@ -12,6 +12,7 @@ use App\Domain\Iam\LoginCodeAlreadyConsumed;
 use App\Domain\Iam\LoginCodeExpired;
 use App\Domain\Iam\OwnerLoginRequest;
 use App\Domain\Iam\OwnerLoginRequestId;
+use App\Domain\Iam\OwnerLoginRequestRepository;
 use App\Domain\Iam\TelegramId;
 use Illuminate\Config\Repository as ConfigRepository;
 use Random\Engine\Mt19937;
@@ -121,7 +122,7 @@ it('бросает LoginCodeAlreadyConsumed при повторном испол
     );
     $request->consume(new DateTimeImmutable('2026-06-01T12:00:30Z'));
 
-    $requests = new class([$request]) implements App\Domain\Iam\OwnerLoginRequestRepository
+    $requests = new class([$request]) implements OwnerLoginRequestRepository
     {
         public function __construct(public array $requests) {}
 

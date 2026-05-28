@@ -156,6 +156,10 @@ app/Infrastructure/Persistence/Eloquent/  # Reader'ы и Repository-импл'ы
 | GET   | `/payments?page=&per_page=`             | История платежей                                    |
 | PATCH | `/profile`                              | name/email/subdomain (telegram_id неизменен)        |
 | POST  | `/profile/telegram/issue-code` (5/min)  | Fresh magic-код для текущего привязанного Telegram  |
+| GET   | `/push/config`                          | VAPID public key + `enabled` (нет VAPID = выключено)|
+| GET   | `/push/subscriptions`                   | Список устройств владельца с push-подписками        |
+| POST  | `/push/subscribe`                       | Регистрирует подписку (`endpoint`, `keys.p256dh/auth`, `user_agent?`), идемпотентно по endpoint |
+| DELETE| `/push/subscribe`                       | Отзывает подписку текущего owner-а; 404 на чужой endpoint |
 
 ### Требует активной подписки (402 если истекла)
 
@@ -177,7 +181,7 @@ app/Infrastructure/Persistence/Eloquent/  # Reader'ы и Repository-импл'ы
 `subscription_expired`, `platform_not_found`, `login_code_invalid`,
 `login_code_expired`, `login_code_already_consumed`,
 `session_tenant_mismatch`, `owner_not_linked_to_telegram`,
-`feature_not_available`.
+`feature_not_available`, `push_subscription_not_found`.
 
 Формат ответа на ошибку: `{ "message": "...", "code": "..." }`
 (+ `errors: { field: [msg] }` на 422 от FormRequest).
@@ -205,6 +209,10 @@ app/Infrastructure/Persistence/Eloquent/  # Reader'ы и Repository-импл'ы
 | Reviews  | `ChangeReviewStatus`              | Command       |
 | Payments | `InitSubscriptionPayment`         | Command       |
 | Payments | `ListOwnerPayments`               | Query (Reader)|
+| Iam      | `RegisterPushSubscription`        | Command       |
+| Iam      | `UnregisterPushSubscription`      | Command       |
+| Iam      | `ListPushSubscriptionsForOwner`   | Query (Reader)|
+| Notifications | `BuildOwnerContact`          | Query         |
 
 Use case = папка `Application/<Context>/<UseCase>/`, внутри —
 `<UseCase>Command|Query.php`, `<UseCase>Handler.php`, опционально
@@ -251,6 +259,33 @@ Use case = папка `Application/<Context>/<UseCase>/`, внутри —
 6. **Scan-side фича?** Добавить в `GetPublicPlaceViewHandler::SCAN_FEATURES` (whitelist)
    и расширить `ScanFeature` тип в `@guard-reviews/shared/types`. Owner-only фичи
    на публичный endpoint НЕ утекают — фильтруются именно этим whitelist'ом.
+
+### Добавить новый push-сценарий (паттерн)
+
+Скелет уже есть: `WebPushNotificationChannel` — первый в `instantChannels` —
+шлёт любой `OwnerNotification`, у которого `contact->hasPushSubscriptions()`.
+Новый сценарий — это новый `OwnerNotification` (use case в `Application/Notifications/`),
+не новый канал.
+
+1. **Создать use case** по аналогии с
+   `Application/Notifications/NotifyAboutNegativeReview/`:
+   - `<Name>Command`/`<Name>Handler` собирают `OwnerNotification`
+     с `kind`, `text`, `emailSubject` и опц. `targetUrl: '/owner/...'`.
+   - SW использует `targetUrl` для deep-link по клику на пуш.
+2. **Триггер** — обычно листенер доменного события (см.
+   `Application/Reviews/Listeners/NotifyOwnerAboutNegativeReview`) или
+   job из `app/Jobs/`. Контакт собирается через `BuildOwnerContactHandler`
+   — он сам подтянет push-подписки.
+3. **SW не трогать** — `push`-handler в `frontend/owner/src/sw.ts` уже
+   читает `{title, body, url, tag, kind}` payload, рендерит уведомление,
+   navigate'ит на `url`. `tag` ставится из `kind` — одинаковые kind'ы
+   автозаменяются в системном центре уведомлений.
+4. **Безопасные kind'ы:** короткий snake_case (`negative_review`,
+   `subscription_expiring`). Используется как deduplication-tag.
+5. **Feature-тест** по образцу
+   `tests/Feature/Notifications/WebPushDeliveryTest.php`:
+   bind `WebPushClient` фейком, seed подписки, dispatch job, проверить
+   `$fake->calls`.
 
 ### Frontend (FSD-цепочка)
 

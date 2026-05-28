@@ -8,6 +8,7 @@ use App\Models\ActionLog;
 use App\Models\Place;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 uses(RefreshDatabase::class);
 
@@ -33,7 +34,7 @@ function createActionLog(ActionType $type, ?Place $place = null): ActionLog
     $place ??= Place::factory()->create();
 
     return ActionLog::query()->create([
-        'id' => (string) \Illuminate\Support\Str::uuid(),
+        'id' => (string) Str::uuid(),
         'place_id' => $place->id,
         'action_type' => $type->value,
         'metadata' => null,

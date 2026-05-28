@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 use App\Application\Payments\InitPaymentRequest;
-use App\Domain\Iam\OwnerId;
 use App\Domain\Payments\Money;
 use App\Domain\Payments\PaymentTransactionId;
 use App\Infrastructure\Payments\Tinkoff\TinkoffAcquirerGateway;

@@ -12,6 +12,7 @@ use App\Interface\Http\Controllers\Owner\OwnerFeaturesController;
 use App\Interface\Http\Controllers\Owner\OwnerMeController;
 use App\Interface\Http\Controllers\Owner\OwnerPlacesController;
 use App\Interface\Http\Controllers\Owner\OwnerProfileController;
+use App\Interface\Http\Controllers\Owner\OwnerPushController;
 use App\Interface\Http\Controllers\Owner\OwnerReviewsController;
 use App\Interface\Http\Controllers\Owner\OwnerSubscriptionController;
 use App\Interface\Http\Controllers\Public\SubmitReviewController;
@@ -93,6 +94,13 @@ Route::prefix('owner')
             Route::patch('profile', [OwnerProfileController::class, 'update']);
             Route::post('profile/telegram/issue-code', [OwnerProfileController::class, 'issueTelegramCode'])
                 ->middleware('throttle:5,1');
+
+            // Web Push: бесплатная страховка от блокировки Telegram, без feature-gate
+            // и без subscription.active — пуши о негативе важнее, чем upsell.
+            Route::get('push/config', [OwnerPushController::class, 'config']);
+            Route::get('push/subscriptions', [OwnerPushController::class, 'index']);
+            Route::post('push/subscribe', [OwnerPushController::class, 'subscribe']);
+            Route::delete('push/subscribe', [OwnerPushController::class, 'unsubscribe']);
 
             // Платные мутации: требуют активной подписки. 402 + subscription_expired.
             // Порядок гардов: subscription.active (402) → feature (403). Сначала

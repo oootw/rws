@@ -12,12 +12,6 @@ use Illuminate\Support\Str;
 
 uses(RefreshDatabase::class);
 
-function loginAsOwner(User $user, string $code = '000000'): void
-{
-    issueLoginRequest($user->id, $code);
-    test()->postJson('/api/owner/auth/exchange', ['code' => $code], tenantHeaders($user))->assertOk();
-}
-
 function seedActionLog(Place $place, ActionType $type, ?DateTimeImmutable $at = null): void
 {
     ActionLog::query()->create([

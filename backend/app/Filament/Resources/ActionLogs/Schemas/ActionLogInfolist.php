@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\ActionLogs\Schemas;
 
-use App\Domain\Analytics\ActionType;
 use Filament\Infolists\Components\KeyValueEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;

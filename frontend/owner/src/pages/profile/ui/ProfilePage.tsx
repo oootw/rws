@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { useSessionQuery } from '@/entities/session';
 import { ProfileForm } from '@/features/update-profile';
 import { TelegramCodeCard } from '@/features/issue-telegram-code';
+import { PushSettingsCard } from '@/widgets/push-settings-card';
 import { Card, Skeleton } from '@/shared/ui';
 
 export function ProfilePage() {
@@ -20,6 +21,7 @@ export function ProfilePage() {
             />
           </Card>
           <TelegramCodeCard isConnected={owner.telegram_connected} />
+          <PushSettingsCard />
         </>
       );
     }

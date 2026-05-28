@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 use App\Application\Places\GetPlaceForOwner\GetPlaceForOwnerHandler;
 use App\Application\Places\GetPlaceForOwner\GetPlaceForOwnerQuery;
+use App\Domain\Iam\OwnerId;
 use App\Domain\Places\Place;
 use App\Domain\Places\PlaceId;
 use App\Domain\Places\Title;
-use App\Domain\Iam\OwnerId;
 
 it('возвращает точку владельца', function (): void {
     $place = activePlace();

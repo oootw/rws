@@ -9,7 +9,9 @@ require_once __DIR__.'/Helpers/places.php';
 require_once __DIR__.'/Helpers/reviews.php';
 require_once __DIR__.'/Helpers/iam.php';
 require_once __DIR__.'/Helpers/iamLogin.php';
+require_once __DIR__.'/Helpers/iamTelegramChats.php';
 require_once __DIR__.'/Helpers/payments.php';
+require_once __DIR__.'/Helpers/push.php';
 require_once __DIR__.'/Helpers/queue.php';
 require_once __DIR__.'/Helpers/telegram.php';
 

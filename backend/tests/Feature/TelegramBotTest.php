@@ -13,7 +13,6 @@ use Database\Seeders\TariffSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
-use SergiX44\Nutgram\Nutgram;
 
 uses(RefreshDatabase::class);
 

@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 use App\Application\Places\ListOwnerPlaces\ListOwnerPlacesHandler;
 use App\Application\Places\ListOwnerPlaces\ListOwnerPlacesQuery;
+use App\Domain\Iam\OwnerId;
 use App\Domain\Places\Place;
 use App\Domain\Places\PlaceId;
 use App\Domain\Places\PlatformLink;
 use App\Domain\Places\PlatformType;
 use App\Domain\Places\Title;
-use App\Domain\Iam\OwnerId;
 
 it('возвращает сводку точек владельца', function (): void {
     $ownerId = '22222222-2222-2222-2222-222222222222';
