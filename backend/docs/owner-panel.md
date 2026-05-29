@@ -163,13 +163,23 @@ app/Infrastructure/Persistence/Eloquent/  # Reader'ы и Repository-импл'ы
 
 ### Требует активной подписки (402 если истекла)
 
-| Метод  | Путь                                  | Use case                          | Доп. guard                     |
-|--------|---------------------------------------|-----------------------------------|--------------------------------|
-| POST   | `/places`                             | RegisterPlace                     | `feature:multiple_places` (403)|
-| PATCH  | `/places/{id}`                        | UpdatePlace                       | —                              |
-| POST   | `/places/{id}/toggle`                 | ChangePlaceActivation             | —                              |
-| DELETE | `/places/{id}`                        | DeletePlace                       | —                              |
-| PATCH  | `/reviews/{id}/status`                | ChangeReviewStatus                | —                              |
+| Метод  | Путь                                  | Use case                          | Доп. guard                              |
+|--------|---------------------------------------|-----------------------------------|-----------------------------------------|
+| POST   | `/places`                             | RegisterPlace                     | `feature:multiple_places` (403)         |
+| PATCH  | `/places/{id}`                        | UpdatePlace                       | —                                       |
+| POST   | `/places/{id}/toggle`                 | ChangePlaceActivation             | —                                       |
+| DELETE | `/places/{id}`                        | DeletePlace                       | —                                       |
+| PATCH  | `/reviews/{id}/status`                | ChangeReviewStatus                | —                                       |
+| GET    | `/telegram-chats`                     | ListOwnerTelegramChats            | `feature:shared_telegram_chat` (403)    |
+| POST   | `/telegram-chats/issue-link`          | IssueTelegramChatLinkToken        | `feature:shared_telegram_chat` (403)    |
+| DELETE | `/telegram-chats/{id}`                | UnlinkTelegramChat                | `feature:shared_telegram_chat` (403)    |
+
+`POST /telegram-chats/issue-link` отдаёт `{ deep_link, expires_at }` —
+`https://t.me/<bot>?startgroup=<token>`. Привязку фактически делает бот:
+владелец открывает deep-link, выбирает группу, бот видит `/start <token>` и
+зовёт `BindTelegramChatHandler` (см. фазу A3 в
+`backend/docs/shared-telegram-chat-plan.md`). TTL токена —
+`guardreviews.chat_link.ttl_seconds` (по умолчанию 600 с).
 
 **Порядок гардов на платных мутациях:** `auth:owner` → `subscription.active:402` → `feature:<key>`.
 Сначала «оплата», потом «availability». Иначе пользователь без подписки получит 403
@@ -181,7 +191,8 @@ app/Infrastructure/Persistence/Eloquent/  # Reader'ы и Repository-импл'ы
 `subscription_expired`, `platform_not_found`, `login_code_invalid`,
 `login_code_expired`, `login_code_already_consumed`,
 `session_tenant_mismatch`, `owner_not_linked_to_telegram`,
-`feature_not_available`, `push_subscription_not_found`.
+`feature_not_available`, `push_subscription_not_found`,
+`telegram_chat_not_found`.
 
 Формат ответа на ошибку: `{ "message": "...", "code": "..." }`
 (+ `errors: { field: [msg] }` на 422 от FormRequest).
@@ -212,7 +223,11 @@ app/Infrastructure/Persistence/Eloquent/  # Reader'ы и Repository-импл'ы
 | Iam      | `RegisterPushSubscription`        | Command       |
 | Iam      | `UnregisterPushSubscription`      | Command       |
 | Iam      | `ListPushSubscriptionsForOwner`   | Query (Reader)|
-| Notifications | `BuildOwnerContact`          | Query         |
+| Iam      | `IssueTelegramChatLinkToken`      | Command       |
+| Iam      | `BindTelegramChat`                | Command (вызывается ботом по `/start <token>`) |
+| Iam      | `ListOwnerTelegramChats`          | Query (Reader)|
+| Iam      | `UnlinkTelegramChat`              | Command       |
+| Notifications | `BuildOwnerContact`          | Query (подтягивает `telegramChatIds` владельца) |
 
 Use case = папка `Application/<Context>/<UseCase>/`, внутри —
 `<UseCase>Command|Query.php`, `<UseCase>Handler.php`, опционально
@@ -259,6 +274,14 @@ Use case = папка `Application/<Context>/<UseCase>/`, внутри —
 6. **Scan-side фича?** Добавить в `GetPublicPlaceViewHandler::SCAN_FEATURES` (whitelist)
    и расширить `ScanFeature` тип в `@guard-reviews/shared/types`. Owner-only фичи
    на публичный endpoint НЕ утекают — фильтруются именно этим whitelist'ом.
+
+**Свежий пример end-to-end:** `shared_telegram_chat` (общий TG-чат на команду,
+эпик A в `docs/shared-telegram-chat-plan.md`). Прошёл всю цепочку: case в
+`Feature` enum → группа `feature:shared_telegram_chat` в `routes/api.php` под
+`subscription.active:402` → `<FeatureGate feature="shared_telegram_chat"
+fallback={<UpsellCard …/>}>` на `pages/profile/` → тесты в
+`tests/Feature/Owner/OwnerTelegramChatsTest.php` (5 кейсов: happy / 401 / 402 /
+403 / 404 на чужой ресурс).
 
 ### Добавить новый push-сценарий (паттерн)
 

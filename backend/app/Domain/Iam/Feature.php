@@ -24,6 +24,7 @@ enum Feature: string
     case CsvExportReviews = 'csv_export_reviews';
     case ApiAccess = 'api_access';
     case PrioritySupport = 'priority_support';
+    case SharedTelegramChat = 'shared_telegram_chat';
 
     public function label(): string
     {
@@ -37,6 +38,7 @@ enum Feature: string
             self::CsvExportReviews => 'Экспорт отзывов в CSV',
             self::ApiAccess => 'Доступ к API',
             self::PrioritySupport => 'Приоритетная поддержка',
+            self::SharedTelegramChat => 'Общий Telegram-чат на команду',
         };
     }
 }

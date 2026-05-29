@@ -1,9 +1,11 @@
 import type { ReactNode } from 'react';
 
 import { useSessionQuery } from '@/entities/session';
+import { FeatureGate, UpsellCard } from '@/entities/features';
 import { ProfileForm } from '@/features/update-profile';
 import { TelegramCodeCard } from '@/features/issue-telegram-code';
 import { PushSettingsCard } from '@/widgets/push-settings-card';
+import { TelegramChatsCard } from '@/widgets/telegram-chats-card';
 import { Card, Skeleton } from '@/shared/ui';
 
 export function ProfilePage() {
@@ -22,6 +24,17 @@ export function ProfilePage() {
           </Card>
           <TelegramCodeCard isConnected={owner.telegram_connected} />
           <PushSettingsCard />
+          <FeatureGate
+            feature="shared_telegram_chat"
+            fallback={
+              <UpsellCard
+                title="Общий Telegram-чат на команду"
+                description="Привязывайте групповой чат, чтобы вся команда видела уведомления о негативных отзывах одновременно."
+              />
+            }
+          >
+            <TelegramChatsCard />
+          </FeatureGate>
         </>
       );
     }

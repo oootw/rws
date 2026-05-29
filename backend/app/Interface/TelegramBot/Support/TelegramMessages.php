@@ -24,6 +24,25 @@ final class TelegramMessages
         ]);
     }
 
+    public static function chatLinked(): string
+    {
+        return 'Чат привязан к вашему аккаунту Guard Reviews. '.
+            'Сюда будут приходить уведомления о негативных отзывах.';
+    }
+
+    public static function chatLinkInvalid(): string
+    {
+        return 'Ссылка для привязки недействительна или устарела. '.
+            'Сгенерируйте новую в панели владельца.';
+    }
+
+    public static function chatLinkHint(): string
+    {
+        return 'Я готов присылать сюда уведомления о негативных отзывах. '.
+            'Чтобы привязать этот чат к вашему аккаунту, откройте панель '.
+            'владельца Guard Reviews и нажмите «Привязать Telegram-чат».';
+    }
+
     public static function subscriptionStatus(?DateTimeImmutable $endsAt): string
     {
         if ($endsAt === null || $endsAt <= new DateTimeImmutable) {

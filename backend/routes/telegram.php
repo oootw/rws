@@ -4,14 +4,23 @@
 
 use App\Interface\TelegramBot\Callbacks\ReviewCallbackHandler;
 use App\Interface\TelegramBot\Commands\BotCommandHandler;
+use App\Interface\TelegramBot\Commands\BotMembershipHandler;
+use App\Interface\TelegramBot\Commands\ChatLinkCommandHandler;
 use App\Interface\TelegramBot\Commands\LoginCommandHandler;
 use App\Interface\TelegramBot\Conversations\AddPlaceConversation;
 use App\Interface\TelegramBot\Conversations\OnboardingConversation;
 use App\Interface\TelegramBot\Middleware\RequireRegisteredOwner;
 use SergiX44\Nutgram\Nutgram;
 
+// `/start <token>` — привязка группового чата по deep-link `?startgroup=<token>`.
+// Регистрируем до bare `/start`, чтобы вариант с токеном забирал команду с параметром.
+$bot->onCommand('start {token}', ChatLinkCommandHandler::class);
+
 $bot->onCommand('start', OnboardingConversation::class)
     ->description('Регистрация и главное меню');
+
+// Бота добавили в группу — подсказываем, как привязать чат к аккаунту.
+$bot->onMyChatMember(BotMembershipHandler::class);
 
 $bot->group(function (Nutgram $bot): void {
     $bot->onCommand('addplace', AddPlaceConversation::class)

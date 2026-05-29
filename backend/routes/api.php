@@ -15,6 +15,7 @@ use App\Interface\Http\Controllers\Owner\OwnerProfileController;
 use App\Interface\Http\Controllers\Owner\OwnerPushController;
 use App\Interface\Http\Controllers\Owner\OwnerReviewsController;
 use App\Interface\Http\Controllers\Owner\OwnerSubscriptionController;
+use App\Interface\Http\Controllers\Owner\OwnerTelegramChatsController;
 use App\Interface\Http\Controllers\Public\SubmitReviewController;
 use App\Interface\Http\Controllers\Webhook\TelegramWebhookController;
 use App\Interface\Http\Controllers\Webhook\TinkoffWebhookController;
@@ -114,6 +115,13 @@ Route::prefix('owner')
                 Route::delete('places/{place}', [OwnerPlacesController::class, 'destroy']);
 
                 Route::patch('reviews/{review}/status', [OwnerReviewsController::class, 'changeStatus']);
+
+                // Общий TG-чат на команду: фича тарифа `shared_telegram_chat`.
+                Route::middleware('feature:shared_telegram_chat')->group(function (): void {
+                    Route::get('telegram-chats', [OwnerTelegramChatsController::class, 'index']);
+                    Route::post('telegram-chats/issue-link', [OwnerTelegramChatsController::class, 'issueLink']);
+                    Route::delete('telegram-chats/{chat}', [OwnerTelegramChatsController::class, 'destroy']);
+                });
             });
         });
     });

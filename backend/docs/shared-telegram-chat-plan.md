@@ -131,28 +131,54 @@ Telegram-группа, куда летят все алерты в дополне
 
 ---
 
-## Фаза A2 — Infrastructure
+## Фаза A2 — Infrastructure ✅ (готово 2026-05-28)
 
-- Eloquent-модель `App\Models\OwnerTelegramChat` (UUID PK, fillable, casts).
-- Mapper `App\Infrastructure\Persistence\Eloquent\Iam\OwnerTelegramChatMapper`.
-- `EloquentOwnerTelegramChatRepository` + Reader (для Query из A1).
-- Биндинги в `IamServiceProvider`.
-- Обновить `App\Jobs\SendNegativeReviewAlert::handle()`: вместо
-  `$owner->asNotificationContact()` — `BuildOwnerContact->handle(ownerId)`.
-- **Расширить `TelegramNotificationChannel.deliver()`:**
-  - цикл по targets `[$contact->telegramId, ...$contact->telegramChatIds]`
-    (отфильтровать null);
-  - per-target try/catch, ошибки агрегируются;
-  - `delivered = true`, если хотя бы один target отправлен;
-  - если все упали — пробрасываем исключение (как сейчас), `MultiChannel`
-    логирует и переходит к fallback.
-  - **Не бросать из канала на «нет ни одного target»** — `supports()` уже
-    отфильтрует через `hasAnyTelegramTarget()`.
-- Feature-тест канала с моком `Nutgram`: 2 targets → 2 вызова `sendMessage`.
+**Что сделано:**
+
+- Eloquent-модели:
+  - `App\Models\OwnerTelegramChat` (UUID PK, fillable, cast `linked_at`,
+    `public $timestamps = false`).
+  - `App\Models\OwnerChatLinkToken` (UUID PK, fillable, casts
+    `expires_at/consumed_at/created_at`, `UPDATED_AT = null`).
+- Persistence слой в `app/Infrastructure/Persistence/Eloquent/Iam/`:
+  - `OwnerTelegramChatMapper` ↔ `EloquentOwnerTelegramChatRepository`
+    (`listByOwner` сортирует по `linked_at`).
+  - `OwnerChatLinkTokenMapper` ↔ `EloquentOwnerChatLinkTokenRepository`
+    (`findActiveByToken` фильтрует `consumed_at IS NULL` + `expires_at > Clock::now()`).
+  - `UuidOwnerTelegramChatIdGenerator`, `UuidOwnerChatLinkTokenIdGenerator`.
+- Биндинги в `IamServiceProvider::$bindings`: 4 новых пары
+  (репозитории и id-генераторы для `OwnerTelegramChat` и `OwnerChatLinkToken`).
+- `App\Jobs\SendNegativeReviewAlert` уже зависит от `BuildOwnerContactHandler`
+  (внедрено эпиком B). Фаза A2 здесь ничего не правит — handler сам теперь
+  тянет групповые чаты.
+- `TelegramNotificationChannel`:
+  - `supports()` = `bot_configured && $contact->hasAnyTelegramTarget()`.
+  - `deliver()` итерирует `[telegramId, ...telegramChatIds]` (фильтрует null/'').
+    Per-target try/catch, ошибки логируются через `LoggerInterface` (PSR-3).
+    Если хоть один таргет принял — return; если все упали — бросаем
+    `App\Infrastructure\Notifications\Channels\TelegramDeliveryFailed`,
+    `MultiChannelOwnerNotifier` уйдёт в fallback (email).
+  - В конструктор добавлен `LoggerInterface` (Laravel auto-resolve, биндинги
+    в `NotificationsServiceProvider` не трогаем).
+- Feature-тест `tests/Feature/Notifications/TelegramChannelMultiTargetTest.php`
+  (7 кейсов): доставка в DM+группы, только группы, mixed-success, all-fail
+  (бросает `TelegramDeliveryFailed`), `supports()` true/false.
+- `tests/Feature/SendNegativeReviewAlertTest.php` обновлён под новый job-сигнатур
+  (`BuildOwnerContactHandler` вместо `GetOwnerByIdHandler`) + добавлен
+  интеграционный кейс «групповой чат подхватывается из БД и попадает в
+  `OwnerContact.telegramChatIds`».
+
+**Принятые мелочи:**
+
+- Без отдельного `Reader` для `ListOwnerTelegramChats`: запросы дешёвые,
+  агрегат `OwnerTelegramChat` сам уже плоский — оверкилл городить read-model.
+- В `OwnerChatLinkTokenRepository` нет метода `purgeExpired` — TTL короткий
+  (10 мин), мусор не критичен; чистка опциональна и решается scheduler-ом
+  позже (вне эпика).
 
 ---
 
-## Фаза A3 — Telegram bot side (Nutgram)
+## Фаза A3 — Telegram bot side (Nutgram) — ✅ (готово 2026-05-29)
 
 - В `App\Interface\TelegramBot\Commands\BotCommandHandler` (или там, где
   обрабатывается `/start <payload>`) добавить ветку «токен принадлежит
@@ -166,9 +192,44 @@ Telegram-группа, куда летят все алерты в дополне
   - повторный bind с тем же chat_id — идемпотентно, без дубля;
   - истёкший токен → ошибка пользователю в чате.
 
+### Что сделано
+
+- **Не трогал** `BotCommandHandler`/`OnboardingConversation` (SRP): разнёс
+  `/start` на два роута в `routes/telegram.php`:
+  - `onCommand('start {token}', ChatLinkCommandHandler::class)` — регистрируется
+    **до** bare `start`; Nutgram-regex `^/start (?<token>.*?)$` требует пробел,
+    поэтому `/start` без аргумента сюда не попадает.
+  - `onCommand('start', OnboardingConversation::class)` — прежний онбординг.
+  - `onMyChatMember(BotMembershipHandler::class)` — вне группы
+    `RequireRegisteredOwner` (токен/мембершип сами по себе авторизация).
+- `App\Interface\TelegramBot\Commands\ChatLinkCommandHandler` (`final readonly`,
+  `__invoke(Nutgram, string $token)`):
+  - только `group`/`supergroup` (нормализация `ChatType|string`); в личке
+    деградирует к `OnboardingConversation::begin($bot)`.
+  - вызывает `BindTelegramChatHandler` с `chatId = (string) $chat->id`
+    (отрицательный, проходит VO `TelegramChatId`), `title = $chat->title`.
+  - ловит `ChatLinkTokenNotFound | ChatLinkTokenExpired |
+    ChatLinkTokenAlreadyConsumed` → `TelegramMessages::chatLinkInvalid()`.
+    NB: `findActiveByToken` уже отсекает истёкшие/использованные → на практике
+    прилетает `ChatLinkTokenNotFound`; доменные исключения — belt-and-suspenders.
+  - успех → `TelegramMessages::chatLinked()`.
+- `App\Interface\TelegramBot\Commands\BotMembershipHandler` (`__invoke(Nutgram)`):
+  через `$bot->chatMember()` (`my_chat_member`) ловит переход
+  `left|kicked → member|administrator` в группе → `chatLinkHint()`.
+- Тексты — в `TelegramMessages`: `chatLinked()`, `chatLinkInvalid()`,
+  `chatLinkHint()`.
+- Конфиг deep-link уже есть с фазы A1: `guardreviews.telegram.bot_username`
+  (`TELEGRAM_BOT_USERNAME`) — отдельный `nutgram.username` не заводил.
+- Тесты `tests/Feature/TelegramBot/ChatLinkTest.php` (5 кейсов): bind в группе,
+  идемпотентность (свежий токен + тот же chat_id → 1 строка, title обновлён),
+  истёкший токен → ошибка + 0 строк, `/start <token>` в личке → 0 строк,
+  `my_chat_member` join → подсказка. Хелперы `groupChat()`,
+  `issueChatLinkToken()` локально в файле.
+- Прогон: `tests/Feature/TelegramBot tests/Unit` → 313 passed; Pint clean.
+
 ---
 
-## Фаза A4 — Owner SPA + feature-gate
+## Фаза A4 — Owner SPA + feature-gate — ✅ (готово 2026-05-29)
 
 ### Backend
 
@@ -210,9 +271,50 @@ Feature-тесты `tests/Feature/Owner/OwnerTelegramChatsTest.php`:
   `<FeatureGate feature="shared_telegram_chat" fallback={<UpsellCard/>}>`.
 - vitest на mutation и query (моки `@/shared/api`, `sonner`).
 
+### Что сделано
+
+Backend:
+- `Feature::SharedTelegramChat = 'shared_telegram_chat'` + label;
+  `ApiErrorCode::TelegramChatNotFound = 'telegram_chat_not_found'` + message.
+- `OwnerTelegramChatsController` (`index/issueLink/destroy`, 5–10 строк каждый)
+  + `OwnerTelegramChatView::fromView()/fromIssuedToken()` (snake_case, ISO 8601).
+  В `destroy()` ловится `TelegramChatNotOwnedByCaller` → 404 c
+  `telegram_chat_not_found` (не светим чужие строки, как в `OwnerPlacesController`).
+  FormRequests не понадобились — у эндпоинтов нет body.
+- `routes/api.php`: вложил в существующий блок `auth:owner + tenant +
+  tenant-owns-session + subscription.active:402` ещё одну группу
+  `feature:shared_telegram_chat` с тремя маршрутами.
+- Тесты `tests/Feature/Owner/OwnerTelegramChatsTest.php` (5 кейсов):
+  happy path (issue-link → ручной insert строки как имитация работы бота A3
+  → list → delete), 401 без сессии, 402 без подписки, 403 без фичи, 404 на
+  чужую строку. Все зелёные. Pint clean.
+
+Frontend (`frontend/owner/src/`):
+- `entities/telegram-chat/`: `model/types.ts` (`TelegramChat`, `IssuedChatLink`),
+  `api/useTelegramChatsQuery.ts` (envelope `{data: T[]}`),
+  `config/queryKeys.ts`, `index.ts`.
+- `features/issue-telegram-chat-link/`: `useIssueLinkMutation` (с
+  `ensureCsrf()` → `httpClient.post`), `IssueLinkButton`
+  (`window.open(deep_link, '_blank')` — мобильный Telegram перехватит).
+- `features/unlink-telegram-chat/`: `useUnlinkMutation` с invalidate
+  `telegramChatsQueryKeys.list()`, `UnlinkChatButton` через `ConfirmDialog`
+  + `toast`.
+- `widgets/telegram-chats-card/`: список (метка = `title` или `chat_id`,
+  дата привязки) + кнопка issue-link + подсказка с показом выданного
+  `deep_link` и его сроком.
+- `pages/profile/ui/ProfilePage.tsx`: добавлен блок
+  `<FeatureGate feature="shared_telegram_chat" fallback={<UpsellCard …/>}>
+  <TelegramChatsCard/></FeatureGate>` после `PushSettingsCard`.
+- `entities/features/model/types.ts`: добавлен union-кейс `'shared_telegram_chat'`.
+- vitest: `useIssueLinkMutation.test.tsx` (моки `@/shared/api`,
+  проверяет `ensureCsrf` + POST + конверт), `useUnlinkMutation.test.tsx`
+  (DELETE + `invalidateQueries`).
+- Зелёное: `npx tsc --noEmit`, `npx vitest run` (23 файла / 61 тест),
+  `npx eslint` по новым папкам.
+
 ---
 
-## Фаза A5 — Документация + ops
+## Фаза A5 — Документация + ops — ✅ (готово 2026-05-29)
 
 - Обновить `backend/docs/owner-panel.md`:
   - §4 — добавить 3 новых endpoint'а.
@@ -222,6 +324,35 @@ Feature-тесты `tests/Feature/Owner/OwnerTelegramChatsTest.php`:
   не обязательны, текст шагов — да).
 - Проверить, что в `.env.example` есть `NUTGRAM_USERNAME` (или эквивалент)
   для генерации deep-link.
+
+### Что сделано
+
+- **`backend/docs/owner-panel.md`:**
+  - §4 — в таблицу «Требует активной подписки» добавлены 3 строки
+    (`GET/POST/DELETE /telegram-chats…`) с гардом `feature:shared_telegram_chat`
+    (403). Под таблицей пояснён workflow: POST отдаёт
+    `{deep_link, expires_at}`, привязка делается ботом по `/start <token>`
+    (фаза A3), TTL = `guardreviews.chat_link.ttl_seconds` (600 с по умолчанию).
+    В список `ApiErrorCode` добавлен `telegram_chat_not_found`.
+  - §5 — в таблицу Owner-relevant use cases добавлены
+    `IssueTelegramChatLinkToken`, `BindTelegramChat` (с пометкой «вызывается
+    ботом»), `ListOwnerTelegramChats`, `UnlinkTelegramChat`. У
+    `BuildOwnerContact` уточнено «подтягивает `telegramChatIds` владельца».
+  - §6 — в конце «Добавить feature-gate (паттерн)» добавлен блок «Свежий
+    пример end-to-end: `shared_telegram_chat`» со ссылкой на эпик и кейсы
+    тестов.
+- **`docs/TELEGRAM_RU.md`** — в конец добавлен раздел «Привязка общего
+  Telegram-чата (для владельца)»: 5 шагов UX (Профиль → карточка → кнопка →
+  Telegram → подтверждение) + блок «Технические детали» (TTL токена,
+  идемпотентность, отвязка, fallback-подсказка при ручном добавлении бота,
+  семантика «доставлено = хотя бы один таргет принял»). Со ссылкой на план.
+- **`backend/.env.example`** — отдельный env-параметр `NUTGRAM_USERNAME`
+  не нужен: deep-link уже строится из существующего `TELEGRAM_BOT_USERNAME`
+  (`guardreviews.telegram.bot_username`); добавил поясняющий комментарий рядом
+  с переменной + добавил `TELEGRAM_CHAT_LINK_TTL_SECONDS=600` (как раз
+  ту, что читается в `IssueTelegramChatLinkTokenHandler`).
+- `backend/саммари.md` уже обновлён в фазе A1 — use cases и агрегаты
+  эпика A перечислены в строке «Iam».
 
 ---
 

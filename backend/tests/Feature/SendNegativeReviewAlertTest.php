@@ -2,11 +2,13 @@
 
 declare(strict_types=1);
 
-use App\Application\Iam\GetOwnerById\GetOwnerByIdHandler;
+use App\Application\Notifications\BuildOwnerContact\BuildOwnerContactHandler;
+use App\Application\Notifications\BuildOwnerContact\BuildOwnerContactQuery;
 use App\Application\Notifications\NotifyAboutNegativeReview\NotifyAboutNegativeReviewHandler;
 use App\Domain\Iam\OwnerId;
 use App\Domain\Iam\OwnerRepository;
 use App\Jobs\SendNegativeReviewAlert;
+use App\Models\OwnerTelegramChat;
 use App\Models\Place;
 use App\Models\Review;
 use App\Models\User;
@@ -31,7 +33,7 @@ it('доставляет алерт при выполнении задачи', f
     ]);
 
     (new SendNegativeReviewAlert((string) $review->id))->handle(
-        app(GetOwnerByIdHandler::class),
+        app(BuildOwnerContactHandler::class),
         app(NotifyAboutNegativeReviewHandler::class),
     );
 
@@ -40,7 +42,7 @@ it('доставляет алерт при выполнении задачи', f
 
 it('игнорирует задачу если отзыв не найден', function (): void {
     (new SendNegativeReviewAlert('00000000-0000-0000-0000-000000000000'))->handle(
-        app(GetOwnerByIdHandler::class),
+        app(BuildOwnerContactHandler::class),
         app(NotifyAboutNegativeReviewHandler::class),
     );
 
@@ -57,13 +59,40 @@ it('игнорирует задачу если владелец точки не 
         ->once()
         ->with(Mockery::on(fn (OwnerId $id): bool => $id->value === (string) $owner->id))
         ->andReturn(null);
+    app()->instance(OwnerRepository::class, $owners);
 
     (new SendNegativeReviewAlert((string) $review->id))->handle(
-        new GetOwnerByIdHandler($owners),
+        app(BuildOwnerContactHandler::class),
         app(NotifyAboutNegativeReviewHandler::class),
     );
 
     app(Nutgram::class)->assertNoReply();
+});
+
+it('передаёт групповые TG-чаты владельца через BuildOwnerContact', function (): void {
+    $owner = User::factory()->create(['telegram_id' => '9090']);
+    $place = Place::factory()->for($owner)->create(['title' => 'Бистро']);
+    $review = Review::factory()->create([
+        'place_id' => $place->id,
+        'stars' => 1,
+        'text' => 'Плохо',
+        'contact' => 'user@example.com',
+    ]);
+
+    OwnerTelegramChat::query()->create([
+        'owner_id' => $owner->id,
+        'chat_id' => '-1001234567890',
+        'title' => 'Команда',
+        'linked_at' => now(),
+    ]);
+
+    $contact = app(BuildOwnerContactHandler::class)->handle(
+        new BuildOwnerContactQuery((string) $owner->id),
+    );
+
+    expect($contact->telegramId)->toBe('9090')
+        ->and($contact->telegramChatIds)->toBe(['-1001234567890'])
+        ->and($contact->hasAnyTelegramTarget())->toBeTrue();
 });
 
 it('возвращает экспоненциальную задержку повтора', function (): void {

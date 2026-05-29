@@ -14,4 +14,5 @@ export type Feature =
   | 'qr_themes'
   | 'csv_export_reviews'
   | 'api_access'
-  | 'priority_support';
+  | 'priority_support'
+  | 'shared_telegram_chat';
